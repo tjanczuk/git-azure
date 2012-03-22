@@ -1,0 +1,32 @@
+{
+  "name": "git-azure",
+  "description": "Git-deploy multiple node.js apps to Azure Worker Role in seconds",
+  "version": "0.0.1",
+  "author": {
+    "name": "Tomasz Janczuk <tomasz@janczuk.org>",
+    "url": "http://tomasz.janczuk.org",
+    "twitter": "tjanczuk"
+  },
+  "dependencies": {
+    "xml2js" : ">= 0.1.11",
+    "commander": ">= 0.5.2",
+    "winston": ">= 0.5.10"
+  },
+  "devDependencies": {
+  },
+  "homepage": "https://github.com/tjanczuk/git-azure",
+  "bugs": { 
+    "url": "https://github.com/tjanczuk/git-azure/issues"
+  },
+  "keywords": ["http", "websockets", "application", "web", "api", "node.js", "nodejs", "azure", "windows"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tjanczuk/git-azure.git"
+  },
+  "engines": { 
+    "node": ">= 0.6.10" 
+  },
+  "bin" : {
+    "git-azure": "./src/cli/git-azure.js"
+  }
+}
