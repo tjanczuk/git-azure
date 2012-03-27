@@ -10,7 +10,8 @@
   "dependencies": {
     "xml2js" : ">= 0.1.11",
     "commander": ">= 0.5.2",
-    "colors": "0.6.0"
+    "colors": "0.6.0",
+    "async": ">= 0.1.10"
   },
   "devDependencies": {
   },

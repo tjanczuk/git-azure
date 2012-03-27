@@ -3,22 +3,75 @@ var fs = require('fs')
 	, xml2js = require('xml2js')
 	, assert = require('assert')
 	, common = require('./common.js')
-	, pfx2pem = require('./pkcs.js').pfx2pem;
+	, pfx2pem = require('./pkcs.js').pfx2pem
+	, async = require('async');
 
 exports.action = function (cmd) {
 
 	var gitAzureDir = '.git-azure'
+	var gitAzureRepo = 'git@github.com:tjanczuk/git-azure.git'
 
 	var config
+
+	function gitOrDie(args, successMessage, dieMessage, callback) {
+		common.git(args, config.projectRoot, function (err, result) {
+			if (err) {
+				console.error(dieMessage)
+				console.error(err.msg)
+				process.exit(1)
+			}
+
+			if (successMessage)
+				console.log(successMessage.green)
+
+			if (callback)
+				callback(err, result)
+		})
+	}
 
 	function ensureGitAzureSubmodule() {
 		var gitAzure = path.resolve(config.git.projectRoot, gitAzureDir)
 		if (fs.existsSync(gitAzure)) {
 			console.log(('OK: detected existing ' + gitAzure + ' directory, skipping scaffolding.').green)
 		}
-		else {
-			console.log(('OK: created scaffolding of the git-azure runtime at ' + gitAzure).green)
-		}
+		else 
+			async.series([
+
+				// Create scaffolding of the git-azure runtime. Issue the command:
+				//     git submodule add git@github.com:tjanczuk/git-azure.git .git-azure
+				// at the project root directory.
+
+				async.apply(gitOrDie,
+					['submodule', 'add', gitAzureRepo, gitAzureDir],
+					'OK: created scaffolding of git-azure runtime as a submodule at ' + gitAzure,
+					'Unable to create scaffolding of the git-azure runtime as a Git submodule at ' + gitAzure + ':'),
+
+				// Add the scaffolding to Git index
+
+				async.apply(gitOrDie,
+					['add', '.'],
+					'OK: added scaffolding changes to Git index.',
+					'Unable to add git-azure scaffolding changes to Git index:'),
+
+				// Commit the scaffolding changes
+
+				async.apply(gitOrDie,
+					['commit', '-m', 'git-azure service runtime'],
+					'OK: commited scaffolding changes.',
+					'Unable to commit git-azure scaffolding changes:'),
+
+				// Push the scaffolding changes
+
+				async.apply(gitOrDie,
+					['push', '-u', config.remote, config.branch],
+					'OK: pushed scaffolding changes to ' + config.remote + '/' + config.branch + '.',
+					'Unable to push git-azure scaffolding changes to ' + config.remote + '/' + config.branch +'.\n'
+					+ 'WARNING: changes have already been commited locally; please push them manually to your remote, '
+					+ 'then re-run this command.\nError details:')
+			],
+			function () {
+				console.log(('OK: created and pushed scaffolding of the git-azure runtime at ' + gitAzure).green)
+			});
 	}
 
 	function processPublishSettings() {
@@ -126,7 +179,7 @@ exports.action = function (cmd) {
 			missing.push('- subscriptionId must be specified when managementCertificate is specified');
 
 		['storageAccountName', 'storageAccountKey', 'serviceName', 'serviceLocation', 
-		 'vmSize', 'instances', 'blobContainerName'].forEach(function (item) {
+		 'vmSize', 'instances', 'blobContainerName', 'remote', 'branch'].forEach(function (item) {
 			if (!config[item])
 				missing.push('- ' + item)
 		});
