@@ -1,7 +1,7 @@
 {
   "name": "git-azure",
   "description": "Git-deploy multiple node.js apps to Azure Worker Role in seconds",
-  "version": "0.0.1",
+  "version": "0.1.0-pre",
   "author": {
     "name": "Tomasz Janczuk <tomasz@janczuk.org>",
     "url": "http://tomasz.janczuk.org",
@@ -10,7 +10,7 @@
   "dependencies": {
     "xml2js" : ">= 0.1.11",
     "commander": ">= 0.5.2",
-    "winston": ">= 0.5.10"
+    "colors": "0.6.0"
   },
   "devDependencies": {
   },
