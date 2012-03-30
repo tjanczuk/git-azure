@@ -36,31 +36,29 @@ exports.action = function (cmd) {
 		}
 		else 
 			async.series([
-
-				// Create scaffolding of the git-azure runtime. Issue the command:
-				//     git submodule add git@github.com:tjanczuk/git-azure.git .git-azure
-				// at the project root directory.
+				
+				//git submodule add git@github.com:tjanczuk/git-azure.git .git-azure
 
 				async.apply(gitOrDie,
 					['submodule', 'add', gitAzureRepo, gitAzureDir],
 					'OK: created scaffolding of git-azure runtime as a submodule at ' + gitAzure,
 					'Unable to create scaffolding of the git-azure runtime as a Git submodule at ' + gitAzure + ':'),
 
-				// Add the scaffolding to Git index
+				// git add .
 
 				async.apply(gitOrDie,
 					['add', '.'],
 					'OK: added scaffolding changes to Git index.',
 					'Unable to add git-azure scaffolding changes to Git index:'),
 
-				// Commit the scaffolding changes
+				// git commit -m "git-azure service runtime"
 
 				async.apply(gitOrDie,
 					['commit', '-m', 'git-azure service runtime'],
 					'OK: commited scaffolding changes.',
 					'Unable to commit git-azure scaffolding changes:'),
 
-				// Push the scaffolding changes
+				// git push -u origin master
 
 				async.apply(gitOrDie,
 					['push', '-u', config.remote, config.branch],
@@ -172,14 +170,13 @@ exports.action = function (cmd) {
 
 		var missing = [];
 
-		if (!config.managementCertificate && !config.publishSettings) 
-			missing.push('- publishSettings or managementCertificate');
+		if (config.rdpusername && !config.rdppassword)
+			missing.push('- rdppassword must be specified when rdpusername is specified');
+		else if (!config.rdpusername && config.rdppassword)
+			missing.push('- rdpusername must be specified when rdppassword is specified');
 
-		if (config.managementCertificate && !config.subscriptionId)
-			missing.push('- subscriptionId must be specified when managementCertificate is specified');
-
-		['storageAccountName', 'storageAccountKey', 'serviceName', 'serviceLocation', 
-		 'vmSize', 'instances', 'blobContainerName', 'remote', 'branch'].forEach(function (item) {
+		['publishSettings', 'storageAccountName', 'storageAccountKey', 'serviceName', 'serviceLocation', 
+		 'instances', 'blobContainerName', 'remote', 'branch'].forEach(function (item) {
 			if (!config[item])
 				missing.push('- ' + item)
 		});

@@ -18,29 +18,31 @@ exports.git = function (args, dir, callback) {
 
 exports.gitAzureConfigNames = [
 	'subscriptionId',
-	'managementCertificate',
 	'publishSettings',
 	'storageAccountName',
 	'storageAccountKey',
 	'serviceName',
 	'serviceLocation',
-	'vmSize',
 	'instances',
 	'blobContainerName',
+	'rdpusername',
+	'rdppassword',
 	'remote',
 	'branch'
 ]
 
-exports.getAzureConfigFromGit = function (callback) {
+exports.getAzureConfigFromGit = function (prefix, properties, callback) {
 	if (typeof callback !== 'function')
-		throw new Error('callback must be a function')
+		throw new Error('callback must be a function');
+	if (!Array.isArray(properties))
+		throw new Error('properties must be an array of strings');
 
 	var result = {}
 	var getNextSetting = function (i) {
-		exports.git(['config','--get','azure.' + exports.gitAzureConfigNames[i]], null, function (err, stdout) {
+		exports.git(['config','--get', (prefix || '') + properties[i]], null, function (err, stdout) {
 			if (!err && typeof stdout === 'string' && stdout.length > 0)
-				result[exports.gitAzureConfigNames[i]] = stdout.replace('\n','')
-			if (++i === exports.gitAzureConfigNames.length) 
+				result[properties[i]] = stdout.replace('\n','')
+			if (++i === properties.length) 
 				callback(err, result)
 			else
 				getNextSetting(i)
@@ -69,7 +71,6 @@ exports.getCurrentConfig = function (callback) {
 
 	var config = {
 		serviceLocation: 'Anywhere US',
-		vmSize: 'ExtraSmall',
 		instances: 1,
 		remote: 'origin',
 		branch: 'master'
@@ -77,9 +78,19 @@ exports.getCurrentConfig = function (callback) {
 
 	// override with configuration stored in Git
 
-	exports.getAzureConfigFromGit(function (err, gitConfig) {
-		exports.merge(gitConfig, config)
-		callback(null, config)
+	exports.getAzureConfigFromGit('azure.', exports.gitAzureConfigNames, function (err, gitConfig) {
+		exports.merge(gitConfig, config);
+		var remoteProp = 'remote.' + config.remote + '.url';
+		exports.getAzureConfigFromGit(null, [remoteProp], function (err, remoteConfig) {
+			if (err) {
+				console.error('Cannot determine the URL of the remote: ' + config.remote + '.');
+				console.error('Make sure the remote is registered or specify a different one with --remote.');
+				process.exit(1);
+			}
+			config.remote_url = remoteConfig[remoteProp];
+			console.log('Using remote ' + config.remote + ' with URL ' + config.remote_url);
+			callback(null, config)
+		});
 	})
 }
 
