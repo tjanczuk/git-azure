@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<ServiceDefinition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" name="git-azure" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceDefinition">
+  <WorkerRole name="bootstrap">
+    <ConfigurationSettings>
+      <Setting name="REMOTE_URL" />
+      <Setting name="REMOTE_BRANCH" />
+    </ConfigurationSettings>
+    <Imports>
+      <Import moduleName="RemoteForwarder" />
+      <Import moduleName="RemoteAccess" />
+    </Imports>
+    <Startup>
+      <Task commandLine="setup_worker.cmd" executionContext="elevated">
+        <Environment>
+          <Variable name="REMOTE_URL">
+            <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/ConfigurationSettings/ConfigurationSetting[@name='REMOTE_URL']/@value" />
+          </Variable>
+          <Variable name="REMOTE_BRANCH">
+            <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/ConfigurationSettings/ConfigurationSetting[@name='REMOTE_BRANCH']/@value" />
+          </Variable>
+        </Environment>
+      </Task>
+    </Startup>
+    <Endpoints>
+      <InputEndpoint name="HttpIn" protocol="tcp" port="80" />
+      <InputEndpoint name="HttpsIn" protocol="tcp" port="443" />
+      <InputEndpoint name="ManagementPublic" protocol="tcp" port="31415" />
+      <InternalEndpoint name="ManagementInternal" protocol="tcp" port="31416" />
+    </Endpoints>
+    <Runtime executionContext="elevated">
+      <Environment>
+        <Variable name="HTTP_PORT">
+          <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/Endpoints/Endpoint[@name='HttpIn']/@port" />
+        </Variable>
+        <Variable name="HTTPS_PORT">
+          <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/Endpoints/Endpoint[@name='HttpsIn']/@port" />
+        </Variable>
+        <Variable name="MANAGEMENT_PUBLIC_PORT">
+          <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/Endpoints/Endpoint[@name='ManagementPublic']/@port" />
+        </Variable>
+        <Variable name="MANAGEMENT_INTERNAL_PORT">
+          <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/Endpoints/Endpoint[@name='ManagementInternal']/@port" />
+        </Variable>
+      </Environment>
+      <EntryPoint>
+        <ProgramEntryPoint commandLine="start_worker.cmd" setReadyOnProcessStart="true" />
+      </EntryPoint>
+    </Runtime>
+  </WorkerRole>
+</ServiceDefinition>
