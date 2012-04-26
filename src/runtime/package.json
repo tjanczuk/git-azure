@@ -1,0 +1,26 @@
+{
+  "name": "arrjs",
+  "description": "HTTP and WebSocket application request routing",
+  "version": "0.1.0",
+  "author": {
+    "name": "Tomasz Janczuk <tomasz@janczuk.org>",
+    "url": "http://tomasz.janczuk.org"
+  },
+  "dependencies": {
+    "http-proxy": "0.8.0",
+    "optimist": "0.3.1",
+    "azure": "0.5.3"
+  },
+  "devDependencies": {
+  },
+  "homepage": "http://github.com/tjanczuk/git-azure",
+  "bugs": { 
+    "url": "http://github.com/tjanczuk/git-azure/issues"
+  },
+  "keywords": ["routing", "http", "application", "web"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tjanczuk/git-azure.git"
+  },
+  "engines": { "node": ">= 0.6.0" }
+}

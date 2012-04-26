@@ -4,6 +4,9 @@
     <ConfigurationSettings>
       <Setting name="REMOTE_URL" />
       <Setting name="REMOTE_BRANCH" />
+      <Setting name="AZURE_STORAGE_ACCOUNT" />
+      <Setting name="AZURE_STORAGE_ACCESS_KEY" />
+      <Setting name="AZURE_STORAGE_CONTAINER" />
     </ConfigurationSettings>
     <Imports>
       <Import moduleName="RemoteForwarder" />
@@ -40,6 +43,21 @@
         </Variable>
         <Variable name="MANAGEMENT_INTERNAL_PORT">
           <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/Endpoints/Endpoint[@name='ManagementInternal']/@port" />
+        </Variable>
+        <Variable name="REMOTE_URL">
+          <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/ConfigurationSettings/ConfigurationSetting[@name='REMOTE_URL']/@value" />
+        </Variable>
+        <Variable name="REMOTE_BRANCH">
+          <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/ConfigurationSettings/ConfigurationSetting[@name='REMOTE_BRANCH']/@value" />
+        </Variable>
+        <Variable name="AZURE_STORAGE_ACCOUNT">
+          <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/ConfigurationSettings/ConfigurationSetting[@name='AZURE_STORAGE_ACCOUNT']/@value" />
+        </Variable>
+        <Variable name="AZURE_STORAGE_ACCESS_KEY">
+          <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/ConfigurationSettings/ConfigurationSetting[@name='AZURE_STORAGE_ACCESS_KEY']/@value" />
+        </Variable>
+        <Variable name="AZURE_STORAGE_CONTAINER">
+          <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/ConfigurationSettings/ConfigurationSetting[@name='AZURE_STORAGE_CONTAINER']/@value" />
         </Variable>
       </Environment>
       <EntryPoint>
