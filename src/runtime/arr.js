@@ -10,6 +10,11 @@ var httpProxy = require('http-proxy'),
 var processes = {};
 var config;
 
+if (!fs.existsSync) {
+	// polyfill node v0.7 fs.existsSync with node v0.6 path.existsSync
+	fs.existsSync = path.existsSync;
+}
+
 function determineConfiguration() {
 
 	// start with default configuration
@@ -19,8 +24,8 @@ function determineConfiguration() {
 		sslPort: 443,
 		externalManagementPort: 31415,
 		internalManagementPort: 31416,
-		sslCertificateName: 'serverCertificate',
-		sslKeyName: 'serverKey',
+		// sslCertificateName: 'serverCertificate',
+		// sslKeyName: 'serverKey',
 		startPort: 8000,
 		endPort: 9000
 	};
@@ -38,7 +43,7 @@ function determineConfiguration() {
 			description: 'Validate configuration without starting the runtime'
 		})
 		.check(function (args) { return !args.help; })
-		.check(function (args) { return path.existsSync(args.r); })
+		.check(function (args) { return fs.existsSync(args.r); })
 		.argv;
 
 	config.root = argv.r;
@@ -47,7 +52,7 @@ function determineConfiguration() {
 	// read package.json from the root directory and override configuration defaults
 
 	var packageJson = path.resolve(config.root, 'package.json');
-	if (path.existsSync(packageJson)) {
+	if (fs.existsSync(packageJson)) {
 		var json;
 		try {
 			json = require(packageJson);
@@ -88,13 +93,14 @@ function determineConfiguration() {
 	// process apps directory to determine app specific configuration
 
 	config.apps = {};
-	var rootDirContent = fs.readdirSync(config.root);
-	for (var file in rootDirContent) {
-		var appDir = path.resolve(config.root, file);
+	var appsDir = path.resolve(config.root, 'apps');
+	var rootDirContent = fs.readdirSync(appsDir);
+	for (var index in rootDirContent) {
+		var file = rootDirContent[index];
+		var appDir = path.resolve(appsDir, file);
 		var appPackageJson = path.resolve(appDir, 'package.json');
-		var appServerJs = path.resolve(appDir, 'server.js');
 
-		if (path.existsSync(appPackageJson)) {
+		if (fs.existsSync(appPackageJson)) {
 			var json;
 			try {
 				json = require(appPackageJson);
@@ -107,16 +113,24 @@ function determineConfiguration() {
 			}
 		}
 
-		if (!config.apps[file] && path.existsSync(appServerJs)) {
-			config.apps[file] = {
-				name: file,
-				script: 'server.js',
-				hosts: {
-					'*': {
-						ssl: 'allowed'
-					}
+		if (!config.apps[file]) {
+			['server.js', 'app.js'].some(function (item) {
+				if (fs.existsSync(path.resolve(appDir, item))) {
+					config.apps[file] = {
+						name: file,
+						script: item,
+						hosts: {
+							'*': {
+								ssl: 'allowed'
+							}
+						}
+					};	
+
+					return true;				
 				}
-			};
+
+				return false;
+			});
 		}
 	}
 
@@ -132,8 +146,7 @@ function determineConfiguration() {
 function calculateRoutingTable() {
 	config.routingTable = {};
 	for (var app in config.apps) {
-
-		if (typeof(config.apps[app].hosts !== 'object'))
+		if (typeof config.apps[app].hosts !== 'object')
 			throw new Error('The hosts property of the configuration element of the ' + app + ' application must be a JSON object.');
 
 		for (var host in config.apps[app].hosts) {
@@ -158,11 +171,63 @@ function calculateRoutingTable() {
 	console.log(config.routingTable);
 	console.log();
 
+	validateSslConfiguration();
+}
+
+function validateSslConfiguration() {
+
+	if (typeof config.sslCertificateName === 'string' && typeof config.sslKeyName !== 'string'
+		|| typeof config.sslCertificateName !== 'string' && typeof config.sslKeyName === 'string') {
+			console.log('Error in service level SSL configuration. To configure a single SSL certificate for all applications, you must specify both '
+				+ "'sslCertificateName' and 'sslKeyName' configuration properties in the 'azure' section of package.json.");
+			process.exit(1);
+	}
+
+	if (typeof config.sslCertificateName === 'string') {
+		config.sslEnabled = true;
+		console.log('Non-SNI SSL credentials are configured at the reverse proxy level.');
+	}
+
+	for (var host in config.routingTable) {
+		var route = config.routingTable[host].route;
+		if (route.ssl !== 'rejected') {
+			if (typeof route.sslCertificateName === 'string' && typeof route.sslKeyName !== 'string'
+				|| typeof route.sslCertificateName !== 'string' && typeof route.sslKeyName === 'string') {
+					console.log('Error in SSL configuration of host ' + host + ' of application application ' + config.routingTable[host].app.name + '.' 
+						+' To configure an SSL certificate for a single host using SNI, you must specify both '
+						+ "'sslCertificateName' and 'sslKeyName' configuration properties in the configuration of the selected host name in the package.json "
+						+ 'file at the application\'s directory root.');
+					process.exit(1);
+			}
+
+			if (typeof route.sslCertificateName === 'string') {
+				config.sslEnabled = true;
+				console.log('SSL credentials for SNI are configured for host name ' + host + ' of application ' + routingTable[host].app.name);
+			}
+		}
+	}
+
+	if (config.sslEnabled && typeof config.sslCertificateName !== 'string') {
+		console.log('Error in SSL configuration. At least one application specified SSL credentials for SNI, which requires that '
+			+ 'a non-SNI SSL credentials be also configured. You must specify both '
+			+ "'sslCertificateName' and 'sslKeyName' configuration properties in the 'azure' section of package.json.");
+		process.exit(1);
+	}
+
+	if (!config.sslEnabled) {
+		console.log('SSL is not configured, SSL endpoint will not be created.');
+	}
+
 	if (config.validateOnly) {
 		process.exit(0);
 	}
 
-	obtainCertificates();
+	if (config.sslEnabled) {
+		obtainCertificates();
+	}
+	else {
+		setupRouter();
+	}
 }
 
 function obtainCertificates() {
@@ -179,31 +244,42 @@ function obtainCertificates() {
 	}
 
 	var obtainOne = function(spec) {
+		if (spec.ssl === 'rejected') {
+			return;
+		}
+
 		if (typeof spec.sslCertificateName === 'string') {
-			console.log('Obtaining SSL certificate ' + spec.sslCertificateName + '...')
+			console.log('Obtaining SSL certificate named ' + spec.sslCertificateName + '...')
 			pendingAsyncOps++;
 			blob.getBlobToText(config.azureStorageContainer, spec.sslCertificateName, function (err, text) {
 				if (err) {
-					console.log('Error obtaining SSL certificate ' + spec.sslCertificateName + ':');
-					throw err;
+					console.log('Error obtaining SSL certificate named ' + spec.sslCertificateName + '. '
+						+ 'Make sure the certificate in PEM format is uploaded as a blob named '
+						+ spec.sslCertificateName + ' to the Windows Azure Blob Storage container named '
+						+ config.azureStorageContainer + ' under the Windows Azure storage account named '
+						+ process.env.AZURE_STORAGE_ACCOUNT + '. You can do this using the \'git azure blob\' command.');
+					process.exit(1);
 				}
 
-				console.log('Success obtaining SSL certificate ' + spec.sslCertificateName);
+				console.log('Success obtaining SSL certificate named ' + spec.sslCertificateName);
 				spec.sslCertificate = text;
+				config.sslEndpoint = true;
 				finishAsyncOp();
 			});
-		}
 
-		if (typeof spec.sslKeyName === 'string') {
-			console.log('Obtaining SSL key ' + spec.sslKeyName + '...')
+			console.log('Obtaining SSL key named ' + spec.sslKeyName + '...')
 			pendingAsyncOps++;
 			blob.getBlobToText(config.azureStorageContainer, spec.sslKeyName, function (err, text) {
 				if (err) {
-					console.log('Error obtaining SSL key ' + spec.sslKeyName + ':');
-					throw err;
+					console.log('Error obtaining SSL key named ' + spec.sslKeyName + '. '
+						+ 'Make sure the SSL key in PEM format is uploaded as a blob named '
+						+ spec.sslKeyName + ' to the Windows Azure Blob Storage container named '
+						+ config.azureStorageContainer + ' under the Windows Azure storage account named '
+						+ process.env.AZURE_STORAGE_ACCOUNT + '. You can do this using the \'git azure blob\' command.');
+					process.exit(1);
 				}
 
-				console.log('Success obtaining SSL key ' + spec.sslKeyName);
+				console.log('Success obtaining SSL key named ' + spec.sslKeyName);
 				spec.sslKey = text;
 				finishAsyncOp();
 			});
@@ -238,7 +314,6 @@ function onProxyError(context, status, error) {
 }
 
 function getDestinationDescription(context) {
-	var machineName = context.backend.host === localIP ? 'localhost' : context.backend.host;
 	var requestType = (context.socket ? 'WS' : 'HTTP') + (context.proxy.secure ? 'S' : '');
 	return requestType + ' request to app ' + context.routingEntry.app.name + ' on port ' + context.routingEntry.to.port;	
 }
@@ -287,32 +362,45 @@ function getEnv(port) {
 	return env;
 }
 
-function waitForServer(context, port, attemptsLeft, delay) {
-	var client = net.connect(port, function () {
+function waitForServer(routingEntry, attemptsLeft, delay) {
+	var client = net.connect(routingEntry.to.port, function () {
 		client.destroy();
-		routeToProcess(context);
+
+		for (var i in routingEntry.pendingRequests) {
+			routeToProcess(routingEntry.pendingRequests[i])
+		}
+
+		delete routingEntry.pendingRequests;
 	});
 
 	client.on('error', function() {
 		client.destroy();
-		if (attemptsLeft === 0) {
-			onProxyError(context, 500, 'The application process for application ' + context.routingEntry.app.name 
-				+ ' did not establish a listener in a timely manner.');
-			console.log('Terminating unresponsive application process with PID ' + context.routingEntry.process.pid);
-			delete processes[context.routingEntry.to.port];
-			try { 
-				process.kill(context.routingEntry.process.pid); 
-			}
-			catch (e) {
-				// empty
+		if (attemptsLeft === 0 || !routingEntry.process) {
+			for (var i in routingEntry.pendingRequests) {
+				var context = routingEntry.pendingRequests[i];
+				onProxyError(context, 500, 'The node.js process for application ' + routingEntry.app.name 
+					+ ' did not establish a listener in a timely manner or failed during startup.');
 			}
 
-			delete context.routingEntry.process;
-			delete context.routingEntry.to;
+			delete routingEntry.pendingRequests;
+
+			if (routingEntry.process) {
+				console.log('Terminating unresponsive node.js process with PID ' + routingEntry.process.pid);
+				delete processes[routingEntry.to.port];
+				try { 
+					process.kill(routingEntry.process.pid); 
+				}
+				catch (e) {
+					// empty
+				}
+
+				delete routingEntry.process;
+				delete routingEntry.to;
+			}
 		} 
 		else { 
 			setTimeout(function () {
-				waitForServer(context, port, attemptsLeft - 1, delay);				
+				waitForServer(routingEntry, attemptsLeft - 1, delay);				
 			}, delay);
 		}
 	});
@@ -325,7 +413,7 @@ function createProcess(context) {
 	}
 	else {
 		var env = getEnv(port);
-		var absolutePath = path.resolve(config.root, '/apps/', context.routingEntry.app.name, context.routingEntry.app.script);
+		var absolutePath = path.resolve(config.root, 'apps', context.routingEntry.app.name, context.routingEntry.app.script);
 
 		console.log('Starting application ' + context.routingEntry.app.name + ' with entry point ' + absolutePath);
 		
@@ -344,7 +432,7 @@ function createProcess(context) {
 		else {
 			processes[port] = context.routingEntry.process;
 			context.routingEntry.to = { host: '127.0.0.1', port: port };
-			var logger = function(data) { console.log('PID ' + context.routingEntry.process.pid + ':' + data); };
+			var logger = function(data) { process.stdout.write('PID ' + context.routingEntry.process.pid + ':' + data); };
 			context.routingEntry.process.stdout.on('data', logger);
 			context.routingEntry.process.stderr.on('data', logger);
 			context.routingEntry.process.on('exit', function (code, signal) {
@@ -358,20 +446,28 @@ function createProcess(context) {
 				delete context.routingEntry.to;
 			});
 
-			waitForServer(context, port, 20, 1000);
+			waitForServer(context.routingEntry, 20, 1000);
 		}
 	}
 }
 
 function ensureProcess(context) {
 	// Routing logic:
-	// 1. If app process is running, route to it
-	// 2. Else, provision an new instance and route to it
+	// 1. If app process is running:
+	// 1.1. If it has already established a listener, route to it
+	// 1.2. Else, queue up the context to be routed once the listener has been established
+	// 2. Else, provision a new instance
 
 	if (context.routingEntry.process) {
-		routeToProcess(context);
+		if (context.routingEntry.pendingRequests) {
+			context.routingEntry.pendingRequests.push(context);
+		}
+		else {
+			routeToProcess(context);
+		}
 	}
 	else {
+		context.routingEntry.pendingRequests = [ context ];
 		createProcess(context);
 	}
 }
@@ -423,21 +519,23 @@ function setupRouter() {
 	server.on('upgrade', function (req, res, head) { onRouteUpgradeRequest(req, res, head, server.proxy); });
 	server.listen(config.port);
 
-	// setup HTTPS/WSS proxy along with SNI information for individual apps
+	if (config.sslEnabled) {
+		// setup HTTPS/WSS proxy along with SNI information for individual apps
 
-	var options = { https: { cert: config.sslCertificate, key: config.sslKey } };
-	var secureServer = httpProxy.createServer(options, onRouteRequest);
-	secureServer.proxy.secure = true;
-	secureServer.proxy.on('proxyError', onProxyingError);
-	secureServer.on('upgrade', function (req, res, head) { onRouteUpgradeRequest(req, res, head, secureServer.proxy); });
-	for (var hostName in config.routingTable) {
-		var host = config.routingTable[hostName];
-		if (host.sslCertificate && host.sslKey && host.ssl !== 'reject') {
-			console.log('Configuring SNI for host name ' + hostName);
-			secureServer.addContext(hostName, { cert: host.sslCertificate, key: host.sslKey });
+		var options = { https: { cert: config.sslCertificate, key: config.sslKey } };
+		var secureServer = httpProxy.createServer(options, onRouteRequest);
+		secureServer.proxy.secure = true;
+		secureServer.proxy.on('proxyError', onProxyingError);
+		secureServer.on('upgrade', function (req, res, head) { onRouteUpgradeRequest(req, res, head, secureServer.proxy); });
+		for (var hostName in config.routingTable) {
+			var host = config.routingTable[hostName];
+			if (host.sslCertificate && host.sslKey && host.ssl !== 'reject') {
+				console.log('Configuring SNI for host name ' + hostName);
+				secureServer.addContext(hostName, { cert: host.sslCertificate, key: host.sslKey });
+			}
 		}
+		secureServer.listen(config.sslPort);
 	}
-	secureServer.listen(config.sslPort);
 
 	console.log('Router successfuly started.');
 }
