@@ -13,7 +13,7 @@
       <Import moduleName="RemoteAccess" />
     </Imports>
     <Startup>
-      <Task commandLine="setup_worker.cmd" executionContext="elevated">
+      <Task commandLine="setup_worker.cmd 1<&2 >> log.txt" executionContext="elevated">
         <Environment>
           <Variable name="REMOTE_URL">
             <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/ConfigurationSettings/ConfigurationSetting[@name='REMOTE_URL']/@value" />
@@ -61,7 +61,7 @@
         </Variable>
       </Environment>
       <EntryPoint>
-        <ProgramEntryPoint commandLine="start_worker.cmd" setReadyOnProcessStart="true" />
+        <ProgramEntryPoint commandLine="start_worker.cmd 1<&2 >> log.txt" setReadyOnProcessStart="true" />
       </EntryPoint>
     </Runtime>
   </WorkerRole>
