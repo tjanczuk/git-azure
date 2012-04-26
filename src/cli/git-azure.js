@@ -4,7 +4,7 @@ var program = require('commander')
     , fs = require('fs')
     , path = require('path')
     , util = require('util')
-    , colors = require('colors')
+    , colors = require('colors');
 
 var oldError = console.error
 console.error = function (thing) {

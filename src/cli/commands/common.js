@@ -1,11 +1,19 @@
 var path = require('path')
 	, fs = require('fs')
 	, spawn = require('child_process').spawn
+	, path = require('path');
+
+if (!fs.existsSync) {
+	// polyfill node v0.7 fs.existsSync with node v0.6 path.existsSync
+	fs.existsSync = path.existsSync;
+}
+
+exports.isWindows = typeof process.env.OS !== 'undefined';
 
 exports.git = function (args, dir, callback) {
     if (typeof args === 'string') 
     	args = [args];
-    var git = spawn('git', args, { cwd: dir || process.cwd() });
+    var git = spawn(exports.isWindows ? 'git.cmd' : 'git', args, { cwd: dir || process.cwd() });
     var stdout = ''
     var stderr = ''
     git.stdout.on('data', function (data) { stdout += data.toString(); })
