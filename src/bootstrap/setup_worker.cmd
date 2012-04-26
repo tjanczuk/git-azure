@@ -1,6 +1,6 @@
 @echo off
 
-SET NODE_URL=http://nodejs.org/dist/v0.6.15/node-v0.6.15.msi
+SET NODE_URL=http://nodejs.org/dist/v0.7.0/node-v0.7.0.msi
 SET GIT_URL=http://msysgit.googlecode.com/files/Git-1.7.10-preview20120409.exe
 
 SET THIS=%~dp0
