@@ -20,11 +20,73 @@ exports.action = function (cmd) {
 	}
 
 	function deleteHostedService() {
+		var deleteDeploymentSlot = function (slot, callback) {
+			common.httpsRequest(
+				config.subscriptionId,
+				config.managementCertificate,
+				managementHost,
+				'/' + config.subscriptionId + '/services/hostedservices/' + config.serviceName + '/deploymentslots/' + slot,
+				'DELETE',
+				null,
+				{ 'x-ms-version': '2009-10-01' },
+				true,
+				function (err, res, body) {
+					if (err) {
+						console.error('Unable to delete deployment slot ' + slot + ' of service ' + config.serviceName 
+							+ ' under subscription ' + config.subscriptionId + '.');
+						console.error(err);
+						process.exit(1);
+					}
 
+					console.log(('OK: deleted deployment slot ' + slot + ' of service ' + config.serviceName 
+						+ ' under subscription ' + config.subscriptionId + '.').green);
+
+					callback(err, res, body);
+				}
+			);
+		};
+
+		var deleteService = function (callback) {
+			common.httpsRequest(
+				config.subscriptionId,
+				config.managementCertificate,
+				managementHost,
+				'/' + config.subscriptionId + '/services/hostedservices/' + config.serviceName,
+				'DELETE',
+				null,
+				{ 'x-ms-version': '2010-10-28' },
+				function (err, res, body) {
+					if (err) {
+						console.error('Unable to delete service ' + config.serviceName + ' under subscription ' + config.subscriptionId + '.');
+						console.error(err);
+						process.exit(1);
+					}
+					else if (res.statusCode !== 200) {
+						console.error('Unable to delete service ' + config.serviceName + ' under subscription ' + config.subscriptionId + '.');
+						console.error('Status code: ' + res.statusCode + ', response body:');
+						console.error(body);
+						process.exit(1);
+					}
+
+					console.log(('OK: deleted service ' + config.serviceName + ' under subscription ' + config.subscriptionId + '.').green);
+
+					callback(err, res, body);
+				}
+			);
+		};
+
+		deleteDeploymentSlot('staging', function () {
+			deleteDeploymentSlot('production', function () {
+				deleteService(function () {
+					ensureCspkgUploaded();
+				});
+			});
+		});
 	}
 
 	function checkHostedServiceNameAvailable() {
 		common.httpsRequest(
+			config.subscriptionId,
 			config.managementCertificate,
 			managementHost,
 			'/' + config.subscriptionId + '/services/hostedservices/' + config.serviceName,
@@ -40,8 +102,8 @@ exports.action = function (cmd) {
 
 				if (res.statusCode === 200) {
 					if (config.force) {
-						console.log('OK: found existing hosted service with name ' + config.serviceName 
-							+ ' under subscription ' + config.subscriptionId + '; it will be deleted and re-created.');
+						console.log(('OK: found existing hosted service with name ' + config.serviceName 
+							+ ' under subscription ' + config.subscriptionId + '. It will be deleted and re-created.').green);
 						deleteHostedService();
 					}
 					else {
@@ -227,14 +289,14 @@ exports.action = function (cmd) {
 		var missing = [];
 
 		if (config.rdpusername && !config.rdppassword)
-			missing.push('- rdppassword must be specified when rdpusername is specified');
+			missing.push('--rdppassword must be specified when --rdpusername is specified');
 		else if (!config.rdpusername && config.rdppassword)
-			missing.push('- rdpusername must be specified when rdppassword is specified');
+			missing.push('--rdpusername must be specified when --rdppassword is specified');
 
 		['publishSettings', 'storageAccountName', 'storageAccountKey', 'serviceName', 'serviceLocation', 
 		 'instances', 'blobContainerName', 'remote', 'branch'].forEach(function (item) {
 			if (!config[item])
-				missing.push('- ' + item)
+				missing.push('--' + item)
 		});
 
 		if (missing.length > 0) {
