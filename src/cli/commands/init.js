@@ -6,7 +6,8 @@ var fs = require('fs')
 	, pfx2pem = require('./pkcs.js').pfx2pem
 	, async = require('async')
 	, azure = require('azure')
-	, https = require('https');
+	, https = require('https')
+	, util = require('util');
 
 exports.action = function (cmd) {
 
@@ -16,16 +17,142 @@ exports.action = function (cmd) {
 	var bootstrapBlobName = 'bootstrap.cspkg';
 	var config;
 
-	function createGitAzureService() {
+	function createDeployment() {
+		var template = 
+'<?xml version="1.0" encoding="utf-8"?>\
+<CreateDeployment xmlns="http://schemas.microsoft.com/windowsazure">\
+  <Name>%s</Name>\
+  <PackageUrl>%s</PackageUrl>\
+  <Label>%s</Label>\
+  <Configuration>%s</Configuration>\
+  <StartDeployment>true</StartDeployment>\
+  <TreatWarningsAsError>false</TreatWarningsAsError>\
+</CreateDeployment>';
 
+		var content = util.format(template,
+			config.serviceName,
+			'http://' + config.storageAccountName + '.blob.core.windows.net/' + config.blobContainerName + '/' + bootstrapBlobName,
+			new Buffer(config.serviceName).toString('base64'),
+			new Buffer(config.cscfg).toString('base64')
+		);
+
+		common.httpsRequest(
+			config.subscriptionId,
+			config.managementCertificate,
+			managementHost,
+			'/' + config.subscriptionId + '/services/hostedservices/' + config.serviceName + '/deploymentslots/production',
+			'POST',
+			content,
+			{ 'x-ms-version': '2011-08-01', 'Content-Type': 'application/xml' },
+			true,
+			function (err, res, body) {
+				if (err || res.statusCode !== 200) {
+					console.error('Unable to create deployment of service with name ' + config.serviceName 
+						+ ' under subscription ' + config.subscriptionId + ':');
+					if (err) {
+						console.error(err.toString());
+					}
+					else {
+						console.error('Status code: ' + res.statusCode + ', response body:');
+						console.error(body);
+					}
+					process.exit(1);
+				}
+
+				console.log(('OK: created and started production deployment of service ' + config.serviceName
+					+ ' under the subscription ' + config.subscriptionId + '.').green);
+			}
+		);
+	}
+
+	function createHostedService() {
+		var template = 
+'<?xml version="1.0" encoding="utf-8"?>\
+<CreateHostedService xmlns="http://schemas.microsoft.com/windowsazure">\
+  <ServiceName>%s</ServiceName>\
+  <Label>%s</Label>\
+  <Location>%s</Location>\
+</CreateHostedService>';
+
+		var content = util.format(template,
+			config.serviceName,
+			new Buffer(config.serviceName).toString('base64'),
+			config.serviceLocation
+		);
+
+		common.httpsRequest(
+			config.subscriptionId,
+			config.managementCertificate,
+			managementHost,
+			'/' + config.subscriptionId + '/services/hostedservices',
+			'POST',
+			content,
+			{ 'x-ms-version': '2010-10-28', 'Content-Type': 'application/xml' },
+			function (err, res, body) {
+				if (err || res.statusCode !== 201) {
+					console.error('Unable to create service with name ' + config.serviceName 
+						+ ' under subscription ' + config.subscriptionId + ':');
+					if (err) {
+						console.error(err.toString());
+					}
+					else {
+						console.error('Status code: ' + res.statusCode + ', response body:');
+						console.error(body);
+					}
+					process.exit(1);
+				}
+
+				console.log(('OK: created service ' + config.serviceName 
+					+ ' under subscription ' + config.subscriptionId + '.').green);
+
+				createDeployment();
+			}
+		);
+	}
+
+	function generateServiceConfiguration() {
+		var template = 
+'<?xml version="1.0"?>\
+<ServiceConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" serviceName="%s" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceConfiguration">\
+  <Role name="bootstrap">\
+    <ConfigurationSettings>\
+      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.AccountEncryptedPassword" value="todo" />\
+      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.AccountExpiration" value="2100-01-01T03:14:15Z" />\
+      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.AccountUsername" value="todo" />\
+      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.Enabled" value="false" />\
+      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteForwarder.Enabled" value="false" />\
+      <Setting name="REMOTE_BRANCH" value="%s" />\
+      <Setting name="REMOTE_URL" value="%s" />\
+      <Setting name="AZURE_STORAGE_ACCOUNT" value="%s" />\
+      <Setting name="AZURE_STORAGE_ACCESS_KEY" value="%s" />\
+      <Setting name="AZURE_STORAGE_CONTAINER" value="%s" />\
+    </ConfigurationSettings>\
+    <Instances count="%s" />\
+    <Certificates>\
+    	<!-- <Certificate name="Microsoft.WindowsAzure.Plugins.RemoteAccess.PasswordEncryption" thumbprint="0000000000000000000000000000000000000000" thumbprintAlgorithm="sha1" /> -->\
+    </Certificates>\
+  </Role>\
+</ServiceConfiguration>';
+
+		config.cscfg = util.format(template,
+			config.serviceName,
+			config.branch,
+			config.remote_url,
+			config.storageAccountName,
+			config.storageAccountKey,
+			config.blobContainerName,
+			config.instances
+			);
+
+		console.log('OK: service configuration generated.'.green);
+
+		createHostedService();
 	}
 
 	function ensureCspkgUploaded() {
 		var blob = azure.createBlobService(config.storageAccountName, config.storageAccountKey);
 
 		var cspkgPath = path.resolve(config.projectRoot, gitAzureDir, 'src/bootstrap/bootstrap.cspkg');
-
-		console.log('Uploading bootstrap package ' + cspkgPath + ' to Windows Azure...');
 
 		if (!fs.existsSync(cspkgPath)) {
 			console.error('Unable to find the bootstrap package file at ' + cspkgPath);
@@ -36,7 +163,7 @@ exports.action = function (cmd) {
 			if (err) {
 				console.error('Unable to create blob container ' + config.blobContainerName + ' within storage account '
 					+ config.storageAccountName + ':');
-				console.error(err);
+				console.error(err.toString());
 				process.exit(1);
 			}
 
@@ -60,14 +187,14 @@ exports.action = function (cmd) {
 						console.error('Unable to upload boostrap package ' + cspkgPath + ' to Windows Azure blob ' 
 							+ bootstrapBlobName + ' in container ' + config.blobContainerName + ' under storage account '
 							+ config.storageAccountName + ':');
-						console.error(err);
+						console.error(err.toString());
 						process.exit(1);
 					}
 
-					console.log(('OK: bootstrap package uploaded to blob ' + bootstrapBlobName + ' in container '
+					console.log(('OK: bootstrap package ' + cspkgPath + ' uploaded to blob ' + bootstrapBlobName + ' in container '
 						+ config.blobContainerName + ' under storage account ' + config.storageAccountName + '.').green);
 
-					createGitAzureService();
+					generateServiceConfiguration();
 				});
 			});
 		});
@@ -85,10 +212,16 @@ exports.action = function (cmd) {
 				{ 'x-ms-version': '2009-10-01' },
 				true,
 				function (err, res, body) {
-					if (err) {
+					if (err || res.statusCode !== 200 && res.statusCode !== 404) {
 						console.error('Unable to delete deployment slot ' + slot + ' of service ' + config.serviceName 
-							+ ' under subscription ' + config.subscriptionId + '.');
-						console.error(err);
+							+ ' under subscription ' + config.subscriptionId + ':');
+						if (err) {
+							console.error(err.toString());
+						}
+						else {
+							console.error('Status code: ' + res.statusCode + ', response body:');
+							console.error(body);
+						}
 						process.exit(1);
 					}
 
@@ -110,15 +243,15 @@ exports.action = function (cmd) {
 				null,
 				{ 'x-ms-version': '2010-10-28' },
 				function (err, res, body) {
-					if (err) {
+					if (err || res.statusCode !== 200 && res.statusCode !== 404) {
 						console.error('Unable to delete service ' + config.serviceName + ' under subscription ' + config.subscriptionId + '.');
-						console.error(err);
-						process.exit(1);
-					}
-					else if (res.statusCode !== 200) {
-						console.error('Unable to delete service ' + config.serviceName + ' under subscription ' + config.subscriptionId + '.');
-						console.error('Status code: ' + res.statusCode + ', response body:');
-						console.error(body);
+						if (err) {
+							console.error(err.toString());
+						}
+						else {
+							console.error('Status code: ' + res.statusCode + ', response body:');
+							console.error(body);
+						}
 						process.exit(1);
 					}
 

@@ -32,7 +32,7 @@ exports.httpsRequest = 	function (subscriptionId, cert, host, url, method, body,
 	var adInterval;
 
 	var showAd = function () {
-		console.log(ads[Math.random() * ads.length]);
+		console.log(ads[Math.floor(Math.random() * ads.length)]);
 	}
 
 	var finishAsyncRequest = function (err, res, body) {
@@ -40,11 +40,21 @@ exports.httpsRequest = 	function (subscriptionId, cert, host, url, method, body,
 			clearInterval(adInterval);
 		}
 
+		if (waitShowInterval) {
+			clearInterval(waitShowInterval);
+		}
+
 		callback(err, res, body);
 	}
 
 	var waitSymbols = [ '\\', '|', '/', '-' ];
 	var waitSymbolIndex = 0;
+	var waitShowInterval;
+
+	var showWait = function() {
+		process.stdout.write(waitSymbols[waitSymbolIndex] + ' stay on the line and we will be right with you\r');
+		waitSymbolIndex = (waitSymbolIndex + 1) % waitSymbols.length;
+	}
 
 	var waitForAsyncOperation = function (requestId) {
 		exports.httpsRequest(
@@ -63,11 +73,9 @@ exports.httpsRequest = 	function (subscriptionId, cert, host, url, method, body,
 					finishAsyncRequest(null, res, body);
 				}
 				else if (-1 < body.indexOf('<Status>Failed</Status>')) {
-					finishAsyncRequest(new Error('Async operation failed'), res, body);
+					finishAsyncRequest(new Error('Windows Azure management operation failed:\r\n' + body || ''), res, body);
 				}
 				else if (-1 < body.indexOf('<Status>InProgress</Status>')) {
-					process.stdout.write(waitSymbols[waitSymbolIndex] + ' stay on the line and we will be right with you\r');
-					waitSymbolIndex = (waitSymbolIndex + 1) % waitSymbols.length;
 					setTimeout(function () { 
 						waitForAsyncOperation(requestId); 
 					}, 5000);
@@ -111,13 +119,14 @@ exports.httpsRequest = 	function (subscriptionId, cert, host, url, method, body,
 
 				if (isLongLasting) {
 					adInterval = setInterval(showAd, 12000);
+					waitShowInterval = setInterval(showWait, 1000);
 				}
 
 				waitForAsyncOperation(res.headers['x-ms-request-id']);
 			}
 			else {
 
-				// sync operation - invoke callback
+				// sync completion - invoke callback
 
 				callback(null, res, body);
 			}
