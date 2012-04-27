@@ -13,10 +13,64 @@ exports.action = function (cmd) {
 	var gitAzureDir = '.git-azure';
 	var gitAzureRepo = 'git@github.com:tjanczuk/git-azure.git';
 	var managementHost = 'management.core.windows.net';
+	var bootstrapBlobName = 'bootstrap.cspkg';
 	var config;
 
-	function ensureCspkgUploaded() {
+	function createGitAzureService() {
 
+	}
+
+	function ensureCspkgUploaded() {
+		var blob = azure.createBlobService(config.storageAccountName, config.storageAccountKey);
+
+		var cspkgPath = path.resolve(config.projectRoot, gitAzureDir, 'src/bootstrap/bootstrap.cspkg');
+
+		console.log('Uploading bootstrap package ' + cspkgPath + ' to Windows Azure...');
+
+		if (!fs.existsSync(cspkgPath)) {
+			console.error('Unable to find the bootstrap package file at ' + cspkgPath);
+			process.exit(1);
+		}
+
+		blob.createContainerIfNotExists(config.blobContainerName, function (err) {
+			if (err) {
+				console.error('Unable to create blob container ' + config.blobContainerName + ' within storage account '
+					+ config.storageAccountName + ':');
+				console.error(err);
+				process.exit(1);
+			}
+
+			console.log(('OK: blob container ' + config.blobContainerName + ' exists or has been created.').green);
+
+			blob.getBlobProperties(config.blobContainerName, bootstrapBlobName, function (err, result, response) {
+				if (!err) {
+					if (config.force) {
+						console.log(('OK: blob name ' + bootstrapBlobName + ' already exists in container '
+							+ config.blobContainerName + ' and will be replaced.').green);
+					} 
+					else {
+						console.error('Blob name ' + bootstrapBlobName + ' already exists in the container '
+							+ config.blobContainerName + '. To replace it, specify --force, or use \'git azure blob\' command to remove it.');
+						process.exit(1);	
+					}
+				}
+
+				blob.createBlockBlobFromFile(config.blobContainerName, bootstrapBlobName, cspkgPath, function (err) {
+					if (err) {
+						console.error('Unable to upload boostrap package ' + cspkgPath + ' to Windows Azure blob ' 
+							+ bootstrapBlobName + ' in container ' + config.blobContainerName + ' under storage account '
+							+ config.storageAccountName + ':');
+						console.error(err);
+						process.exit(1);
+					}
+
+					console.log(('OK: bootstrap package uploaded to blob ' + bootstrapBlobName + ' in container '
+						+ config.blobContainerName + ' under storage account ' + config.storageAccountName + '.').green);
+
+					createGitAzureService();
+				});
+			});
+		});
 	}
 
 	function deleteHostedService() {
