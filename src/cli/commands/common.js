@@ -1,7 +1,8 @@
 var path = require('path')
 	, fs = require('fs')
 	, spawn = require('child_process').spawn
-	, path = require('path');
+	, path = require('path')
+	, https = require('https');
 
 if (!fs.existsSync) {
 	// polyfill node v0.7 fs.existsSync with node v0.6 path.existsSync
@@ -9,6 +10,47 @@ if (!fs.existsSync) {
 }
 
 exports.isWindows = typeof process.env.OS !== 'undefined';
+
+exports.httpsRequest = 	function (cert, host, url, method, body, headers, callback)
+{
+	var options = {
+		host: host,
+		port: 443,
+		path: url,
+		method: method,
+		key: cert,
+		cert: cert,
+		headers: headers || {}
+	};
+
+	options.agent = new https.Agent(options);
+
+	if (body) {
+		options.headers['Content-Length'] = body.length;
+	}
+
+	var request = https.request(options, function (res) {
+		res.setEncoding('utf8');
+		var body = '';
+		
+		res.on('data', function (chunk) {
+			body += chunk;
+		});
+
+		res.on('end', function () {
+			callback(null, res, body);
+		});
+	});
+
+	request.on('error', callback);
+
+	if (body) {
+		request.end(body);
+	}
+	else {
+		request.end();
+	}
+}
 
 exports.git = function (args, dir, callback) {
     if (typeof args === 'string') 

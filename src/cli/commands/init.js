@@ -4,35 +4,89 @@ var fs = require('fs')
 	, assert = require('assert')
 	, common = require('./common.js')
 	, pfx2pem = require('./pkcs.js').pfx2pem
-	, async = require('async');
+	, async = require('async')
+	, azure = require('azure')
+	, https = require('https');
 
 exports.action = function (cmd) {
 
-	var gitAzureDir = '.git-azure'
-	var gitAzureRepo = 'git@github.com:tjanczuk/git-azure.git'
+	var gitAzureDir = '.git-azure';
+	var gitAzureRepo = 'git@github.com:tjanczuk/git-azure.git';
+	var managementHost = 'management.core.windows.net';
+	var config;
 
-	var config
+	function ensureCspkgUploaded() {
+
+	}
+
+	function deleteHostedService() {
+
+	}
+
+	function checkHostedServiceNameAvailable() {
+		common.httpsRequest(
+			config.managementCertificate,
+			managementHost,
+			'/' + config.subscriptionId + '/services/hostedservices/' + config.serviceName,
+			'GET',
+			null,
+			{ 'x-ms-version': '2011-10-01' },
+			function (err, res, body) {
+				if (err) {
+					console.error('Unable to check availability of the service name ' + config.serviceName + ':');
+					console.error(err);
+					process.exit(1);
+				}
+
+				if (res.statusCode === 200) {
+					if (config.force) {
+						console.log('OK: found existing hosted service with name ' + config.serviceName 
+							+ ' under subscription ' + config.subscriptionId + '; it will be deleted and re-created.');
+						deleteHostedService();
+					}
+					else {
+						console.error('Found existing hosted service with name ' + config.serviceName 
+							+ ' under subscription ' + config.subscriptionId + '. To replace the service use --force.');
+						process.exit(1);
+					}
+				}
+				else if (res.statusCode === 404 && -1 < body.indexOf('The hosted service does not exist')) {
+					console.log(('OK: service name ' + config.serviceName + ' is available under the subscription ' 
+						+ config.subscriptionId).green);
+					ensureCspkgUploaded();
+				}
+				else {
+					console.error('Unexpected error when checking availability of the hosted service name ' 
+						+ config.serviceName + ' with Windows Azure.');
+					console.error('Status code: ' + res.statusCode + ', response body:');
+					console.error(body);
+					process.exit(1);
+				}
+			}
+		);
+	}
 
 	function gitOrDie(args, successMessage, dieMessage, callback) {
 		common.git(args, config.projectRoot, function (err, result) {
 			if (err) {
-				console.error(dieMessage)
-				console.error(err.msg)
-				process.exit(1)
+				console.error(dieMessage);
+				console.error(err.msg);
+				process.exit(1);
 			}
 
 			if (successMessage)
-				console.log(successMessage.green)
+				console.log(successMessage.green);
 
 			if (callback)
-				callback(err, result)
+				callback(err, result);
 		})
 	}
 
 	function ensureGitAzureSubmodule() {
 		var gitAzure = path.resolve(config.git.projectRoot, gitAzureDir)
 		if (fs.existsSync(gitAzure)) {
-			console.log(('OK: detected existing ' + gitAzure + ' directory, skipping scaffolding.').green)
+			console.log(('OK: detected existing ' + gitAzure + ' directory, skipping scaffolding.').green);
+			checkHostedServiceNameAvailable();
 		}
 		else 
 			async.series([
@@ -68,7 +122,9 @@ exports.action = function (cmd) {
 					+ 'then re-run this command.\nError details:')
 			],
 			function () {
-				console.log(('OK: created and pushed scaffolding of the git-azure runtime at ' + gitAzure).green)
+				console.log(('OK: created and pushed scaffolding of the git-azure runtime at ' + gitAzure).green);
+
+				checkHostedServiceNameAvailable();
 			});
 	}
 
