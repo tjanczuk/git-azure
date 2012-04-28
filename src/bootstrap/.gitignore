@@ -1,3 +1,7 @@
-*.exe
+download.exe
 *.msi
-*.tmp
+*.zip
+*.openssl
+/bin
+/.ssh
+/repo
