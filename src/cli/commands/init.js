@@ -65,6 +65,50 @@ exports.action = function (cmd) {
 		);
 	}
 
+	function uploadPasswordEncryptionCertificate() {
+
+		var template = 
+'<?xml version="1.0" encoding="utf-8"?>\
+<CertificateFile xmlns="http://schemas.microsoft.com/windowsazure">\
+  <Data>%s</Data>\
+  <CertificateFormat>pfx</CertificateFormat>\
+  <Password></Password>\
+</CertificateFile>';
+
+		var content = util.format(template,
+			config.rdp.pfx
+		);
+
+		common.httpsRequest(
+			config.subscriptionId,
+			config.managementCertificate,
+			managementHost,
+			'/' + config.subscriptionId + '/services/hostedservices/' + config.serviceName + '/certificates',
+			'POST',
+			content,
+			{ 'x-ms-version': '2009-10-01', 'Content-Type': 'application/xml' },
+			function (err, res, body) {
+				if (err || res.statusCode !== 200) {
+					console.error('Unable to upload X.509 certificate to enable remote access to the ' + config.serviceName 
+						+ ' service under subscription ' + config.subscriptionId + ':');
+					if (err) {
+						console.error(err.toString());
+					}
+					else {
+						console.error('Status code: ' + res.statusCode + ', response body:');
+						console.error(body);
+					}
+					process.exit(1);
+				}
+
+				console.log(('OK: uploaded X.509 certificate to enable remote access to the ' + config.serviceName 
+					+ ' service under subscription ' + config.subscriptionId + '.').green);
+
+				createDeployment();
+			}
+		);		
+	}
+
 	function createHostedService() {
 		var template = 
 '<?xml version="1.0" encoding="utf-8"?>\
@@ -105,7 +149,7 @@ exports.action = function (cmd) {
 				console.log(('OK: created service ' + config.serviceName 
 					+ ' under subscription ' + config.subscriptionId + '.').green);
 
-				createDeployment();
+				uploadPasswordEncryptionCertificate();
 			}
 		);
 	}
@@ -116,11 +160,11 @@ exports.action = function (cmd) {
 <ServiceConfiguration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" serviceName="%s" xmlns="http://schemas.microsoft.com/ServiceHosting/2008/10/ServiceConfiguration">\
   <Role name="bootstrap">\
     <ConfigurationSettings>\
-      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.AccountEncryptedPassword" value="todo" />\
+      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.AccountEncryptedPassword" value="%s" />\
       <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.AccountExpiration" value="2100-01-01T03:14:15Z" />\
-      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.AccountUsername" value="todo" />\
-      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.Enabled" value="false" />\
-      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteForwarder.Enabled" value="false" />\
+      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.AccountUsername" value="%s" />\
+      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteAccess.Enabled" value="true" />\
+      <Setting name="Microsoft.WindowsAzure.Plugins.RemoteForwarder.Enabled" value="true" />\
       <Setting name="REMOTE_BRANCH" value="%s" />\
       <Setting name="REMOTE_URL" value="%s" />\
       <Setting name="AZURE_STORAGE_ACCOUNT" value="%s" />\
@@ -129,20 +173,23 @@ exports.action = function (cmd) {
     </ConfigurationSettings>\
     <Instances count="%s" />\
     <Certificates>\
-    	<!-- <Certificate name="Microsoft.WindowsAzure.Plugins.RemoteAccess.PasswordEncryption" thumbprint="0000000000000000000000000000000000000000" thumbprintAlgorithm="sha1" /> -->\
+    	<Certificate name="Microsoft.WindowsAzure.Plugins.RemoteAccess.PasswordEncryption" thumbprint="%s" thumbprintAlgorithm="sha1" />\
     </Certificates>\
   </Role>\
 </ServiceConfiguration>';
 
 		config.cscfg = util.format(template,
 			config.serviceName,
+			config.rdp.encryptedPassword,
+			config.username,
 			config.branch,
 			config.remote_url,
 			config.storageAccountName,
 			config.storageAccountKey,
 			config.blobContainerName,
-			config.instances
-			);
+			config.instances,
+			config.rdp.sha1
+		);
 
 		console.log('OK: service configuration generated.'.green);
 
@@ -315,6 +362,75 @@ exports.action = function (cmd) {
 		);
 	}
 
+	function generateRdpSettings() {
+
+		var tmpDir = path.resolve(config.projectRoot, gitAzureDir, 'src/bootstrap');
+		var passwordFile = path.resolve(tmpDir, 'password.clear.openssl');
+		var encryptedPasswordFile = path.resolve(tmpDir, 'password.encrypted.openssl');
+		var keyFile = path.resolve(tmpDir, 'key.pem.openssl');
+		var sha1File = path.resolve(tmpDir, 'key.sha1.openssl');
+		var pfxFile = path.resolve(tmpDir, 'key.pfx.openssl');
+
+		var cleanupFiles = function () {
+			[passwordFile, encryptedPasswordFile, keyFile, sha1File, pfxFile].forEach(function (item) {
+				try {
+					fs.unlinkSync(item);
+				}
+				catch (e) {
+					// empty
+				}
+			});
+		}
+
+		try {
+			fs.writeFileSync(keyFile, config.managementCertificate);
+			fs.writeFileSync(passwordFile, config.password);
+		}
+		catch (e) {
+			console.error('Unable to encrypt the password for remote access to the Windows Azure service:');
+			console.error(e.message || e);
+			cleanupFiles();
+			process.exit(1);
+		}
+
+		var command = 
+			'openssl rsautl -in ' + passwordFile + ' -out ' + encryptedPasswordFile + ' -inkey ' + keyFile + ' -encrypt\n' +
+			'openssl x509 -in ' + keyFile + ' -fingerprint -noout > ' + sha1File + '\n' +
+			'openssl pkcs12 -in ' + keyFile + ' -export -passout pass: -out ' + pfxFile;
+
+		require('child_process').exec(command, function (err, stdout, stderr) {
+			if (err || stderr) {
+				console.error('Unable to encrypt the password for remote access to the Windows Azure service:');
+				if (err) {
+					console.error(err.toString());
+				}
+				else {
+					console.error(stderr);
+				}
+				cleanupFiles();
+				process.exit(1);
+			}
+
+			try {
+				config.rdp = {};
+				config.rdp.encryptedPassword = fs.readFileSync(encryptedPasswordFile, 'base64');
+				config.rdp.pfx = fs.readFileSync(pfxFile, 'base64');
+				config.rdp.sha1 = fs.readFileSync(sha1File, 'utf8').replace(/SHA1 Fingerprint=/, '').replace(/\:/g, '').replace(/\n/, '');
+			}
+			catch (e) {
+				console.error('Unable to encrypt the password for remote access to the Windows Azure service:');
+				console.error(e.message || e);
+				cleanupFiles();
+				process.exit(1);				
+			}
+
+			cleanupFiles();
+			console.log(('OK: encrypted password for remote access to the Windows Azure service.').green);
+
+			checkHostedServiceNameAvailable();
+		});
+	}
+
 	function gitOrDie(args, successMessage, dieMessage, callback) {
 		common.git(args, config.projectRoot, function (err, result) {
 			if (err) {
@@ -335,7 +451,7 @@ exports.action = function (cmd) {
 		var gitAzure = path.resolve(config.git.projectRoot, gitAzureDir)
 		if (fs.existsSync(gitAzure)) {
 			console.log(('OK: detected existing ' + gitAzure + ' directory, skipping scaffolding.').green);
-			checkHostedServiceNameAvailable();
+			generateRdpSettings();
 		}
 		else 
 			async.series([
@@ -373,7 +489,7 @@ exports.action = function (cmd) {
 			function () {
 				console.log(('OK: created and pushed scaffolding of the git-azure runtime at ' + gitAzure).green);
 
-				checkHostedServiceNameAvailable();
+				generateRdpSettings();
 			});
 	}
 
@@ -459,7 +575,9 @@ exports.action = function (cmd) {
 	function checkParametersValid() {
 		// TODO
 
-		console.log('OK: parameters validated.'.green)
+		console.log('Running with the following parameters:');
+		console.log(config);
+
 		ensureManagementCertificate()
 	}
 
@@ -475,15 +593,10 @@ exports.action = function (cmd) {
 
 		var missing = [];
 
-		if (config.rdpusername && !config.rdppassword)
-			missing.push('--rdppassword must be specified when --rdpusername is specified');
-		else if (!config.rdpusername && config.rdppassword)
-			missing.push('--rdpusername must be specified when --rdppassword is specified');
-
 		['publishSettings', 'storageAccountName', 'storageAccountKey', 'serviceName', 'serviceLocation', 
-		 'instances', 'blobContainerName', 'remote', 'branch'].forEach(function (item) {
+		 'instances', 'blobContainerName', 'remote', 'branch', 'username', 'password'].forEach(function (item) {
 			if (!config[item])
-				missing.push('--' + item)
+				missing.push('--' + item);
 		});
 
 		if (missing.length > 0) {

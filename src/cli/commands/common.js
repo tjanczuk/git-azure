@@ -166,8 +166,8 @@ exports.gitAzureConfigNames = [
 	'serviceLocation',
 	'instances',
 	'blobContainerName',
-	'rdpusername',
-	'rdppassword',
+	'username',
+	'password',
 	'remote',
 	'branch',
 	'force'
@@ -196,12 +196,13 @@ exports.getAzureConfigFromGit = function (prefix, properties, callback) {
 exports.merge = function (source, dest, filter) {
 	if (filter) {
 		for (var k in filter)
-			if (source[filter[k]])
-				dest[filter[k]] = source[filter[k]]
+			if (source[filter[k]] && typeof source[filter[k]] !== 'function')
+				dest[filter[k]] = source[filter[k]];
 	}
 	else 
 		for (var k in source) 
-			dest[k] = source[k]			
+			if (typeof source[k] !== 'function')
+				dest[k] = source[k];
 }
 
 exports.getCurrentConfig = function (callback) {
@@ -230,7 +231,6 @@ exports.getCurrentConfig = function (callback) {
 				process.exit(1);
 			}
 			config.remote_url = remoteConfig[remoteProp];
-			console.log('Using remote ' + config.remote + ' with URL ' + config.remote_url);
 			callback(null, config)
 		});
 	})
