@@ -394,7 +394,7 @@ exports.action = function (cmd) {
 		}
 
 		var command = 
-			'openssl rsautl -in ' + passwordFile + ' -out ' + encryptedPasswordFile + ' -inkey ' + keyFile + ' -encrypt\n' +
+			'openssl smime -in ' + passwordFile + ' -out ' + encryptedPasswordFile + ' -outform DER -encrypt ' + keyFile + '\n' +
 			'openssl x509 -in ' + keyFile + ' -fingerprint -noout > ' + sha1File + '\n' +
 			'openssl pkcs12 -in ' + keyFile + ' -export -passout pass: -out ' + pfxFile;
 
