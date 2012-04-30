@@ -248,6 +248,46 @@ exports.action = function (cmd) {
 	}
 
 	function deleteHostedService() {
+
+		var suspendDeploymentSlot = function (slot, callback) {
+
+			var content = '<?xml version="1.0" encoding="utf-8"?>\
+<UpdateDeploymentStatus xmlns="http://schemas.microsoft.com/windowsazure">\
+  <Status>Suspended</Status>\
+</UpdateDeploymentStatus>';
+
+			common.httpsRequest(
+				config.subscriptionId,
+				config.managementCertificate,
+				managementHost,
+				'/' + config.subscriptionId + '/services/hostedservices/' + config.serviceName + '/deploymentslots/' 
+					+ slot + '/?comp=status',
+				'POST',
+				content,
+				{ 'x-ms-version': '2009-10-01', 'Content-Type': 'application/xml' },
+				true,
+				function (err, res, body) {
+					if (err || res.statusCode !== 200 && res.statusCode !== 404) {
+						console.error('Unable to suspend deployment slot ' + slot + ' of service ' + config.serviceName 
+							+ ' under subscription ' + config.subscriptionId + ':');
+						if (err) {
+							console.error(err.toString());
+						}
+						else {
+							console.error('Status code: ' + res.statusCode + ', response body:');
+							console.error(body);
+						}
+						process.exit(1);
+					}
+
+					console.log(('OK: suspended deployment slot ' + slot + ' of service ' + config.serviceName 
+						+ ' under subscription ' + config.subscriptionId + '.').green);
+
+					callback(err, res, body);
+				}
+			);
+		};
+
 		var deleteDeploymentSlot = function (slot, callback) {
 			common.httpsRequest(
 				config.subscriptionId,
@@ -309,10 +349,14 @@ exports.action = function (cmd) {
 			);
 		};
 
-		deleteDeploymentSlot('staging', function () {
-			deleteDeploymentSlot('production', function () {
-				deleteService(function () {
-					ensureCspkgUploaded();
+		suspendDeploymentSlot('staging', function () {
+			suspendDeploymentSlot('production', function () {
+				deleteDeploymentSlot('staging', function () {
+					deleteDeploymentSlot('production', function () {
+						deleteService(function () {
+							ensureCspkgUploaded();
+						});
+					});
 				});
 			});
 		});
