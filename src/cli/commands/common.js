@@ -26,14 +26,14 @@ exports.startWait = function () {
 exports.startAds = function () {
 
 	var ads = [
-		'Did you know you can easily access Windows Azure services from node.js? Check out https://github.com/WindowsAzure/azure-sdk-for-node for details.',
-		'Did you know Windows Azure offers three storage services for your data: blob storage, table storage, and MS SQL? Visit https://www.windowsazure.com to learn more.',
-		'Did you know Windows Azure has a ' + '90-day free trial'.green + '? Check out https://www.windowsazure.com to find out the details.',
-		'Did you know you can host node.js applications in IIS along with other types of content? Visit https://github.com/tjanczuk/iisnode for more information.',
-		'Did you know you can develop node.js applications in WebMatrix on Windows? Download it for free at http://www.microsoft.com/web/webmatrix/.',
-		'Did you know Windows Azure SDK for node.js has everything you need to develop node.js apps on Windows? Check out https://www.windowsazure.com/en-us/develop/nodejs/ for more.',
+		'Did you know you can easily access Windows Azure services from node.js?\nCheck out https://github.com/WindowsAzure/azure-sdk-for-node for details.',
+		'Did you know Windows Azure offers three storage services for your data: blob storage, table storage, and MS SQL?\nVisit https://www.windowsazure.com to learn more.',
+		'Did you know Windows Azure has a ' + '90-day free trial'.green + '?\nCheck out https://www.windowsazure.com for details.',
+		'Did you know you can host node.js applications in IIS along with other types of content?\nVisit https://github.com/tjanczuk/iisnode to get started.',
+		'Did you know you can develop node.js applications in WebMatrix on Windows?\nDownload it for free at http://www.microsoft.com/web/webmatrix/',
+		'Did you know Windows Azure SDK for node.js has everything you need to develop node.js apps on Windows?\nCheck out https://www.windowsazure.com/en-us/develop/nodejs/ for more.',
 		'Did you know that node.js developers live on average 2.7 years longer than PHP devs? [Quotation needed]',
-		'[Place for your ad] Send money and text of the ad to @tjanczuk. Seriously ;)'
+		'[Place for your ad] Send money and text of the ad to @tjanczuk. Seriously.'
 	];
 
 	var showAd = function () {

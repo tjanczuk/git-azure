@@ -52,6 +52,8 @@ exports.action = function (cmd) {
 					clearInterval(adsInterval);
 					clearInterval(waitInterval);
 
+					console.log(('Finished at ' + new Date()).grey);
+
 					process.exit(1);
 				};
 
@@ -95,6 +97,8 @@ exports.action = function (cmd) {
 						clearInterval(adsInterval);
 						clearInterval(waitInterval);
 
+						console.log(('Finished at ' + new Date()).grey);
+
 						process.exit(1);						
 					}
 					else if (success) {
@@ -108,6 +112,8 @@ exports.action = function (cmd) {
 						console.log('You can configure additional DNS entries directed at IP address ' + response.InputEndpointList.InputEndpoint[0].Vip);
 						clearInterval(adsInterval);
 						clearInterval(waitInterval);
+
+						console.log(('Finished at ' + new Date()).grey);
 
 						process.exit(0);						
 					}
@@ -435,6 +441,10 @@ exports.action = function (cmd) {
 		};
 
 		var deleteService = function (callback) {
+
+			console.log(('INFO: if you like coffee, now is the time to get yourself a cup. '
+				+ 'The process of provisioning your own VM in Windows Azure typically takes several minutes...').blue);
+
 			common.httpsRequest(
 				config.subscriptionId,
 				config.managementCertificate,
@@ -803,6 +813,8 @@ exports.action = function (cmd) {
 
 		checkParametersValid()
 	}
+
+	console.log(('Starting at ' + new Date()).grey);
 
 	common.getCurrentConfig(function (err, gitConfig) {
 		if (err) {
