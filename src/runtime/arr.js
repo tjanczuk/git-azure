@@ -95,7 +95,7 @@ function determineConfiguration() {
 	config.apps = {};
 	var appsDir = path.resolve(config.root, 'apps');
 	var rootDirContent;
-	
+
 	try {
 		rootDirContent = fs.readdirSync(appsDir);
 	}
@@ -427,7 +427,7 @@ function createProcess(context) {
 		console.log('Starting application ' + context.routingEntry.app.name + ' with entry point ' + absolutePath);
 		
 		try { 
-			context.routingEntry.process = spawn('node.exe', [ absolutePath ], { env: env }); 
+			context.routingEntry.process = spawn(process.execPath, [ absolutePath ], { env: env }); 
 		}
 		catch (e) {
 			// empty
