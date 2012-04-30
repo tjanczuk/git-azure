@@ -11,11 +11,119 @@ var fs = require('fs')
 
 exports.action = function (cmd) {
 
+	var instanceStatus = {
+		StoppedVM: 'Waiting for a machine to be assigned... [StoppedVM]',
+		CreatingVM: 'Provisioning virtual machine... [CreatingVM]',
+		StartingVM: 'Starting virtual machine... [StartingVM]',
+		BusyRole: 'Running setup scripts... [BusyRole]',
+		ReadyRole: 'Running [ReadyRole]'
+	};
+
 	var gitAzureDir = '.git-azure';
 	var gitAzureRepo = 'git@github.com:tjanczuk/git-azure.git';
 	var managementHost = 'management.core.windows.net';
 	var bootstrapBlobName = 'bootstrap.cspkg';
 	var config;
+	var waitInterval, adsInterval;
+
+	function waitForDeployment() {
+		common.httpsRequest(
+			config.subscriptionId,
+			config.managementCertificate,
+			managementHost,
+			'/' + config.subscriptionId + '/services/hostedservices/' + config.serviceName + '/deploymentslots/production',
+			'GET',
+			null,
+			{ 'x-ms-version': '2011-10-01' },
+			function (err, res, body) {
+				var onError = function (err, res, body) {
+					console.error('Unable to obtain status of the production deployment of service with name ' + config.serviceName 
+						+ ' under subscription ' + config.subscriptionId + ':');
+					if (err) {
+						console.error(err.toString());
+					}
+					else {
+						console.error('Status code: ' + res.statusCode + ', response body:');
+						console.error(body);
+					}
+
+					console.error('You can view the status of the service on the Windows Azure management portal at https://windows.azure.com');
+
+					clearInterval(adsInterval);
+					clearInterval(waitInterval);
+
+					process.exit(1);
+				};
+
+				if (err || res.statusCode !== 200) {
+					onError(err, res, body);
+				}
+
+				var processResponse = function(response) {
+					var status = response.Status;
+					var instances = (typeof response.RoleInstanceList.RoleInstance.RoleName === 'string' ? 
+						[ response.RoleInstanceList.RoleInstance ]: response.RoleInstanceList.RoleInstance);
+
+					var failed = status !== 'Running';
+					var success = !failed;
+
+					console.log(('Deployment status: ' + status + '. Status of machines in the farm:').grey);
+					instances.forEach(function (item) {
+						console.log(('  ' + item.InstanceName + ': ' 
+							+ (instanceStatus[item.InstanceStatus] || item.InstanceStatus)).grey);
+
+						if (typeof item.InstanceStateDetails === 'string') {
+							console.log(('    ' + item.InstanceStateDetails).grey);
+							if (-1 < item.InstanceStateDetails.indexOf('startup task failed')) {
+								failed = true;
+							}
+						}
+
+						failed = failed || ['StoppedVM', 'CreatingVM', 'StartingVM', 'CreatingRole', 'StartingRole', 'BusyRole', 'ReadyRole'].every(function (state) { 
+							return state !== item.InstanceStatus; 
+						});
+
+						success = success && item.InstanceStatus === 'ReadyRole';
+					});
+					
+					if (failed) {
+						console.log(('An error occurred when deploying the service to Windows Azure. You can find out more '
+							+ 'about the status of the deployment on the Windows Azure management portal at https://windows.azure.com').red);
+
+						clearInterval(adsInterval);
+						clearInterval(waitInterval);
+
+						process.exit(1);						
+					}
+					else if (success) {
+						console.log(('OK: successfuly started service ' + config.serviceName).green);
+						console.log('The service can be accessed at the following endpoints:');
+						console.log('  http://' + config.serviceName + '.cloudapp.net         - HTTP application endpoint');
+						console.log('  https://' + config.serviceName + '.cloudapp.net        - HTTPS application endpoint');
+						console.log('  ws://' + config.serviceName + '.cloudapp.net           - WebSocket application traffic');
+						console.log('  wss://' + config.serviceName + '.cloudapp.net          - secure WebSocket application traffic');
+						console.log('  https://' + config.serviceName + '.cloudapp.net:31415  - management endpoint');
+						console.log('You can configure additional DNS entries directed at IP address ' + response.InputEndpointList.InputEndpoint[0].Vip);
+						clearInterval(adsInterval);
+						clearInterval(waitInterval);
+
+						process.exit(0);						
+					}
+					else {
+						setTimeout(waitForDeployment, 10000);
+					}
+				};
+
+				var parser = new xml2js.Parser();
+			    parser.on('end', processResponse);
+			    try {
+			        parser.parseString(body);
+			    } catch (e) {
+			        onError(e, res, body);
+			    }
+			}
+		);
+	}
 
 	function createDeployment() {
 		var template = 
@@ -59,8 +167,12 @@ exports.action = function (cmd) {
 					process.exit(1);
 				}
 
-				console.log(('OK: created and started production deployment of service ' + config.serviceName
-					+ ' under the subscription ' + config.subscriptionId + '.').green);
+				console.log(('OK: created and initiated the start of production deployment of service ' 
+					+ config.serviceName + '.').green);
+
+				waitInterval = common.startWait();
+				adsInterval = common.startAds();
+				waitForDeployment();
 			}
 		);
 	}

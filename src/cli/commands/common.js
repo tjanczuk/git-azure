@@ -9,31 +9,48 @@ if (!fs.existsSync) {
 	fs.existsSync = path.existsSync;
 }
 
-var ads = [
-	'Did you know you can easily access Windows Azure services from node.js? Check out https://github.com/WindowsAzure/azure-sdk-for-node for details.',
-	'Did you know Windows Azure offers three storage services for your data: blob storage, table storage, and MS SQL? Visit https://www.windowsazure.com to learn more.',
-	'Did you know Windows Azure has a 90-day free trial? Check out https://www.windowsazure.com to find out the details.',
-	'Did you know you can host node.js applications in IIS along with other types of content? Visit https://github.com/tjanczuk/iisnode for more information.',
-	'Did you know you can develop node.js applications in WebMatrix on Windows? Download it for free at http://www.microsoft.com/web/webmatrix/.',
-	'Did you know Windows Azure SDK for node.js has everything you need to develop node.js apps on Windows? Check out https://www.windowsazure.com/en-us/develop/nodejs/ for more.',
-	'Did you know node.js developers live on average 2.7 years longer than PHP devs? [Quotation needed]',
-	'[Place for your ad] Send your credit card number and text of the ad to @tjanczuk (just joking)'
-];
-
 exports.isWindows = typeof process.env.OS !== 'undefined';
 
-exports.httpsRequest = 	function (subscriptionId, cert, host, url, method, body, headers, isLongLasting, callback)
-{
+exports.startWait = function () {
+	var waitSymbols = [ '\\', '|', '/', '-' ];
+	var waitSymbolIndex = 0;
+
+	var showWait = function() {
+		process.stdout.write(('  stay on the line and we will be right with you ' + waitSymbols[waitSymbolIndex]).grey + '\r');
+		waitSymbolIndex = (waitSymbolIndex + 1) % waitSymbols.length;
+	}
+
+	return setInterval(showWait, 1000);
+};
+
+exports.startAds = function () {
+
+	var ads = [
+		'Did you know you can easily access Windows Azure services from node.js? Check out https://github.com/WindowsAzure/azure-sdk-for-node for details.',
+		'Did you know Windows Azure offers three storage services for your data: blob storage, table storage, and MS SQL? Visit https://www.windowsazure.com to learn more.',
+		'Did you know Windows Azure has a ' + '90-day free trial'.green + '? Check out https://www.windowsazure.com to find out the details.',
+		'Did you know you can host node.js applications in IIS along with other types of content? Visit https://github.com/tjanczuk/iisnode for more information.',
+		'Did you know you can develop node.js applications in WebMatrix on Windows? Download it for free at http://www.microsoft.com/web/webmatrix/.',
+		'Did you know Windows Azure SDK for node.js has everything you need to develop node.js apps on Windows? Check out https://www.windowsazure.com/en-us/develop/nodejs/ for more.',
+		'Did you know that node.js developers live on average 2.7 years longer than PHP devs? [Quotation needed]',
+		'[Place for your ad] Send money and text of the ad to @tjanczuk. Seriously ;)'
+	];
+
+	var showAd = function () {
+		console.log(ads[Math.floor(Math.random() * ads.length)]);
+	}
+
+	return setInterval(showAd, 16000);
+};
+
+exports.httpsRequest = 	function (subscriptionId, cert, host, url, method, body, headers, isLongLasting, callback) {
 	if (typeof isLongLasting === 'function') {
 		callback = isLongLasting;
 		isLongLasting = undefined;
 	}
 
 	var adInterval;
-
-	var showAd = function () {
-		console.log(ads[Math.floor(Math.random() * ads.length)]);
-	}
+	var waitShowInterval;
 
 	var finishAsyncRequest = function (err, res, body) {
 		if (adInterval) {
@@ -45,15 +62,6 @@ exports.httpsRequest = 	function (subscriptionId, cert, host, url, method, body,
 		}
 
 		callback(err, res, body);
-	}
-
-	var waitSymbols = [ '\\', '|', '/', '-' ];
-	var waitSymbolIndex = 0;
-	var waitShowInterval;
-
-	var showWait = function() {
-		process.stdout.write(waitSymbols[waitSymbolIndex] + ' stay on the line and we will be right with you\r');
-		waitSymbolIndex = (waitSymbolIndex + 1) % waitSymbols.length;
 	}
 
 	var waitForAsyncOperation = function (requestId) {
@@ -118,8 +126,8 @@ exports.httpsRequest = 	function (subscriptionId, cert, host, url, method, body,
 				// async operation - wait for completion
 
 				if (isLongLasting) {
-					adInterval = setInterval(showAd, 12000);
-					waitShowInterval = setInterval(showWait, 1000);
+					adInterval = exports.startAds();
+					waitShowInterval = exports.startWait();
 				}
 
 				waitForAsyncOperation(res.headers['x-ms-request-id']);
