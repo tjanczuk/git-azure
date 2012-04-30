@@ -731,10 +731,37 @@ exports.action = function (cmd) {
 	}
 
 	function checkParametersValid() {
-		// TODO
+		
+		var remote = config.remote_url.toLowerCase();
 
-		console.log('Running with the following parameters:');
-		console.log(config);
+		if (0 !== remote.indexOf('git@') && 0 !== remote.indexOf('https://') 
+			&& 0 !== remote.indexOf('git://') && 0 !== remote.indexOf('http://')) {
+			console.error('The Git remote location ' + config.remote_url + ' does not appear to be an endpoint that can be accessed '
+				+ 'from the internet. '
+				+ 'Please deploy your repository to a remote that can be accessed from within Windows Azure and configure '
+				+ '--remote and --branch accordingly.');
+			process.exit(1);
+		}
+
+		var paramOutline = {
+			'Windows Azure service settings' : [ 'serviceName', 'subscriptionId', 'publishSettings', 'serviceLocation', 'instances' ],
+			'Windows Azure storage settings' : [ 'storageAccountName', 'storageAccountKey', 'blobContainerName' ],
+			'Windows Azure RDP and Management settings' : [ 'username', 'password' ],
+			'Git settings' : [ 'remote_url', 'branch' ]
+		};
+
+		console.log('Running with the following configuration:');
+		for (var i in paramOutline) {
+			console.log('  ' + i);
+			paramOutline[i].forEach(function (item) {
+				if (item === 'password' || item === 'storageAccountKey') {
+					console.log('    ' + item + ': <hidden>');
+				}
+				else {
+					console.log('    ' + item + ': ' + config[item]);
+				}
+			})
+		}
 
 		ensureManagementCertificate()
 	}
