@@ -87,8 +87,10 @@ exports.action = function (cmd) {
 					});
 					
 					if (failed) {
-						console.log(('An error occurred when deploying the service to Windows Azure. You can find out more '
-							+ 'about the status of the deployment on the Windows Azure management portal at https://windows.azure.com').red);
+						console.error('An error occurred when deploying the service to Windows Azure. You can find out more '
+							+ 'about the status of the deployment on the Windows Azure management portal at https://windows.azure.com');
+						console.error('To completely remove all billable Windows Azure artifacts that were deployed, run \'git azure destroy\' ' 
+							+ ' or use the management portal.');
 
 						clearInterval(adsInterval);
 						clearInterval(waitInterval);
@@ -750,10 +752,14 @@ exports.action = function (cmd) {
 		var missing = [];
 
 		['publishSettings', 'storageAccountName', 'storageAccountKey', 'serviceName', 'serviceLocation', 
-		 'instances', 'blobContainerName', 'remote', 'branch', 'username', 'password'].forEach(function (item) {
+		 'instances', 'remote', 'branch', 'username', 'password'].forEach(function (item) {
 			if (!config[item])
 				missing.push('--' + item);
 		});
+
+		if (!config.blobContainerName) {
+			config.blobContainerName = config.serviceName;
+		}
 
 		if (missing.length > 0) {
 			console.error('The following required parameters must be specified:\n')
