@@ -94,7 +94,16 @@ function determineConfiguration() {
 
 	config.apps = {};
 	var appsDir = path.resolve(config.root, 'apps');
-	var rootDirContent = fs.readdirSync(appsDir);
+	var rootDirContent;
+	
+	try {
+		rootDirContent = fs.readdirSync(appsDir);
+	}
+	catch (e) {
+		// no apps directory
+		rootDirContent = [];
+	}
+
 	for (var index in rootDirContent) {
 		var file = rootDirContent[index];
 		var appDir = path.resolve(appsDir, file);
