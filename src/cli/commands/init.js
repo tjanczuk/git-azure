@@ -90,7 +90,7 @@ exports.action = function (cmd) {
 							}
 						}
 
-						failed = failed || ['StoppedVM', 'CreatingVM', 'StartingVM', 'CreatingRole', 'StartingRole', 'BusyRole', 'ReadyRole'].every(function (state) { 
+						failed = failed || ['RoleStateUnknown', 'StoppedVM', 'CreatingVM', 'StartingVM', 'CreatingRole', 'StartingRole', 'BusyRole', 'ReadyRole'].every(function (state) { 
 							return state !== item.InstanceStatus; 
 						});
 
