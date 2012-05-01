@@ -1,6 +1,8 @@
 @echo off
 
 SET THIS=%~dp0
+SET GIT_EXE=%THIS%\bin\git.exe
+SET REPO_ROOT=%THIS%\repo
 
 echo %DATE% %TIME% Entering start_worker.cmd
 
