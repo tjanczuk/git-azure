@@ -116,19 +116,19 @@ exports.action = function (cmd) {
 						console.log();
 						console.log('The service can be accessed at the following endpoints:');
 						console.log('  http://' + config.serviceName + '.cloudapp.net         - HTTP application endpoint');
-						console.log('  https://' + config.serviceName + '.cloudapp.net        - HTTPS application endpoint (if SSL configured)');
+						console.log('  https://' + config.serviceName + '.cloudapp.net        - HTTPS application endpoint (if SSL is configured)');
 						console.log('  ws://' + config.serviceName + '.cloudapp.net           - WebSocket application traffic');
-						console.log('  wss://' + config.serviceName + '.cloudapp.net          - secure WebSocket application traffic (if SSL configured)');
+						console.log('  wss://' + config.serviceName + '.cloudapp.net          - secure WebSocket application traffic (if SSL is configured)');
 						console.log('You can configure additional DNS names directed at IP address ' + response.InputEndpointList.InputEndpoint[0].Vip);
 						console.log();
 						console.log('Management endpoints:');
-						console.log('  https://' + config.serviceName + '.cloudapp.net:31415  - management endpoint (if SSL was configured)');
-						console.log('  http://' + config.serviceName + '.cloudapp.net:31415   - management endpoint (if SSL was not configured)');
+						console.log('  https://' + config.serviceName + '.cloudapp.net:31415  - management endpoint (if SSL is configured)');
+						console.log('  http://' + config.serviceName + '.cloudapp.net:31415   - management endpoint (if SSL is not configured)');
 						console.log('  https://windows.azure.com - Windows Azure management portal (billing, accounts etc.)');
 						console.log();
 						console.log('Configure a post-receive hook in your repository to enable automatic updates on \'git push\'. '
 									+ 'Your post-receive hook URL is:');
-						console.log('    http://' + config.serviceName + '.cloudapp.net:31417' + config.postReceive);
+						console.log('  http://' + config.serviceName + '.cloudapp.net:31417' + config.postReceive);
 						console.log();
 						console.log('Visit https://github.com/tjanczuk/git-azure for walkthroughs on setting up SSL, support for multiple apps, and more.');
 
