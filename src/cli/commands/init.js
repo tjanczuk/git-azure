@@ -25,8 +25,17 @@ exports.action = function (cmd) {
 	var bootstrapBlobName = 'bootstrap.cspkg';
 	var config;
 	var waitInterval, adsInterval;
+	var startTime, endTime;
 
 	function waitForDeployment() {
+
+		var captureEndTime = function() {
+			endTime = new Date();
+			console.log(('Finished at ' + new Date()).grey);
+			var duration = endTime - startTime;
+			console.log(('Duration ' + Math.floor(duration / 60000) + ' min ' + Math.floor((duration % 60000) / 1000) + ' sec.').grey);
+		}
+
 		common.httpsRequest(
 			config.subscriptionId,
 			config.managementCertificate,
@@ -52,7 +61,7 @@ exports.action = function (cmd) {
 					clearInterval(adsInterval);
 					clearInterval(waitInterval);
 
-					console.log(('Finished at ' + new Date()).grey);
+					captureEndTime();
 
 					process.exit(1);
 				};
@@ -97,7 +106,7 @@ exports.action = function (cmd) {
 						clearInterval(adsInterval);
 						clearInterval(waitInterval);
 
-						console.log(('Finished at ' + new Date()).grey);
+						captureEndTime();
 
 						process.exit(1);						
 					}
@@ -113,7 +122,7 @@ exports.action = function (cmd) {
 						clearInterval(adsInterval);
 						clearInterval(waitInterval);
 
-						console.log(('Finished at ' + new Date()).grey);
+						captureEndTime();
 
 						process.exit(0);						
 					}
@@ -814,7 +823,8 @@ exports.action = function (cmd) {
 		checkParametersValid()
 	}
 
-	console.log(('Starting at ' + new Date()).grey);
+	startTime = new Date();
+	console.log(('Starting at ' + startTime).grey);
 
 	common.getCurrentConfig(function (err, gitConfig) {
 		if (err) {
