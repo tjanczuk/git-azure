@@ -15,6 +15,33 @@ if (!fs.existsSync) {
 	fs.existsSync = path.existsSync;
 }
 
+var oldLog = console.log;
+console.log = function (thing) {
+	if (typeof thing === 'string') {
+		oldLog(new Date().toISOString() + ' ' + thing);
+	}
+	else {
+		oldLog.apply(this, arguments);
+	}
+};
+
+process.on('exit', function () {
+	// kill all children
+
+	console.log('Arr.js is exiting, killing all child processes.')
+
+	for (var i in processes) {
+		var p = processes[i];
+		try {
+			process.kill(p.pid);
+			console.log('Killed child process with PID ' + p.pid);
+		}
+		catch (e) {
+			console.log('Unable to kill child process with PID ' + p.pid + ': ' + e);
+		}
+	}
+});
+
 function determineConfiguration() {
 
 	// start with default configuration
