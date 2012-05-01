@@ -178,7 +178,8 @@ exports.gitAzureConfigNames = [
 	'password',
 	'remote',
 	'branch',
-	'force'
+	'force',
+	'postReceive'
 ]
 
 exports.getAzureConfigFromGit = function (prefix, properties, callback) {

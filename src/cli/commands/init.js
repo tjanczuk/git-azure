@@ -7,7 +7,8 @@ var fs = require('fs')
 	, async = require('async')
 	, azure = require('azure')
 	, https = require('https')
-	, util = require('util');
+	, util = require('util'),
+	, uuid = require('node-uuid');
 
 exports.action = function (cmd) {
 
@@ -111,14 +112,26 @@ exports.action = function (cmd) {
 						process.exit(1);						
 					}
 					else if (success) {
-						console.log(('OK: successfuly started service ' + config.serviceName).green);
+						console.log(('OK: your Windows Azure service ' + config.serviceName + ' is ready').green);
+						console.log();
 						console.log('The service can be accessed at the following endpoints:');
 						console.log('  http://' + config.serviceName + '.cloudapp.net         - HTTP application endpoint');
-						console.log('  https://' + config.serviceName + '.cloudapp.net        - HTTPS application endpoint');
+						console.log('  https://' + config.serviceName + '.cloudapp.net        - HTTPS application endpoint (if SSL configured)');
 						console.log('  ws://' + config.serviceName + '.cloudapp.net           - WebSocket application traffic');
-						console.log('  wss://' + config.serviceName + '.cloudapp.net          - secure WebSocket application traffic');
-						console.log('  https://' + config.serviceName + '.cloudapp.net:31415  - management endpoint');
-						console.log('You can configure additional DNS entries directed at IP address ' + response.InputEndpointList.InputEndpoint[0].Vip);
+						console.log('  wss://' + config.serviceName + '.cloudapp.net          - secure WebSocket application traffic (if SSL configured)');
+						console.log('You can configure additional DNS names directed at IP address ' + response.InputEndpointList.InputEndpoint[0].Vip);
+						console.log();
+						console.log('Management endpoints:');
+						console.log('  https://' + config.serviceName + '.cloudapp.net:31415  - management endpoint (if SSL was configured)');
+						console.log('  http://' + config.serviceName + '.cloudapp.net:31415   - management endpoint (if SSL was not configured)');
+						console.log('  https://windows.azure.com - Windows Azure management portal (billing, accounts etc.)');
+						console.log();
+						console.log('Configure a post-receive hook in your repository to enable automatic updates on \'git push\'. '
+									+ 'Your post-receive hook URL is:');
+						console.log('    http://' + config.serviceName + '.cloudapp.net:31417' + config.postReceive);
+						console.log();
+						console.log('Visit https://github.com/tjanczuk/git-azure for walkthroughs on setting up SSL, support for multiple apps, and more.');
+
 						clearInterval(adsInterval);
 						clearInterval(waitInterval);
 
@@ -299,6 +312,9 @@ exports.action = function (cmd) {
       <Setting name="AZURE_STORAGE_ACCOUNT" value="%s" />\
       <Setting name="AZURE_STORAGE_ACCESS_KEY" value="%s" />\
       <Setting name="AZURE_STORAGE_CONTAINER" value="%s" />\
+      <Setting name="POSTRECEIVE_URL_PATH" value="%s" />\
+      <Setting name="MANAGEMENT_USERNAME" value="%s" />\
+      <Setting name="MANAGEMENT_PASSWORD" value="%s" />\
     </ConfigurationSettings>\
     <Instances count="%s" />\
     <Certificates>\
@@ -316,6 +332,9 @@ exports.action = function (cmd) {
 			config.storageAccountName,
 			config.storageAccountKey,
 			config.blobContainerName,
+			config.postReceive,
+			config.username,
+			config.password,
 			config.instances,
 			config.rdp.sha1
 		);
@@ -805,6 +824,13 @@ exports.action = function (cmd) {
 
 		if (!config.blobContainerName) {
 			config.blobContainerName = config.serviceName;
+		}
+
+		if (!config.postReceive) {
+			config.postReceive = '/' + uuid.v4();
+		}
+		else if (typeof config.postReceive === 'string' && config.postReceive.substring(0, 1) !== '/') {
+			config.postReceive = '/' + config.postReceive;
 		}
 
 		if (missing.length > 0) {

@@ -9,6 +9,8 @@ var httpProxy = require('http-proxy'),
 
 var processes = {};
 var config;
+var managementPassword;
+var server, secureServer, managementServer, postReceiveServer;
 
 if (!fs.existsSync) {
 	// polyfill node v0.7 fs.existsSync with node v0.6 path.existsSync
@@ -26,20 +28,7 @@ console.log = function (thing) {
 };
 
 process.on('exit', function () {
-	// kill all children
-
-	console.log('Arr.js is exiting, killing all child processes.')
-
-	for (var i in processes) {
-		var p = processes[i];
-		try {
-			process.kill(p.pid);
-			console.log('Killed child process with PID ' + p.pid);
-		}
-		catch (e) {
-			console.log('Unable to kill child process with PID ' + p.pid + ': ' + e);
-		}
-	}
+	killChildProcesses();
 });
 
 function determineConfiguration() {
@@ -51,6 +40,11 @@ function determineConfiguration() {
 		sslPort: 443,
 		externalManagementPort: 31415,
 		internalManagementPort: 31416,
+		postReceivePort: 31417,
+		postReceive: '/postReceive',
+		managementUsername: 'admin',
+		gitExe: 'git',
+		remoteBranch: 'master',
 		// sslCertificateName: 'serverCertificate',
 		// sslKeyName: 'serverKey',
 		startPort: 8000,
@@ -106,7 +100,11 @@ function determineConfiguration() {
 		MANAGEMENT_INTERNAL_PORT: 'internalManagementPort',
 		REMOTE_URL: 'remoteUrl',
 		REMOTE_BRANCH: 'remoteBranch',
-		AZURE_STORAGE_CONTAINER: 'azureStorageContainer'
+		AZURE_STORAGE_CONTAINER: 'azureStorageContainer',
+		POSTRECEIVE_URL_PATH: 'postReceive',
+		MANAGEMENT_USERNAME: 'managementUsername',
+		POSTRECEIVE_PUBLIC_PORT: 'postReceivePort',
+		GIT_EXE: 'gitExe'
 	};
 
 	for (var n in vars) {
@@ -116,6 +114,7 @@ function determineConfiguration() {
 	}
 
 	config.currentPort = config.startPort;
+	managementPassword = process.env.MANAGEMENT_PASSWORD || 'admin';
 
 	// process apps directory to determine app specific configuration
 
@@ -262,8 +261,36 @@ function validateSslConfiguration() {
 		obtainCertificates();
 	}
 	else {
-		setupRouter();
+		initializeEndpoints();
 	}
+}
+
+function initializeEndpoints() {
+	ensurePostReceiveHook();
+	setupManagement();
+	setupRouter();
+}
+
+function closeEndpoints(callback) {
+	if (server) {
+		console.log('Closing HTTP/WS router...');
+		server.close();
+		server = undefined;
+	}
+
+	if (secureServer) {
+		console.log('Closing HTTPS/WSS router...');
+		secureServer.close();
+		secureServer = undefined;
+	}
+
+	if (managementServer) {
+		console.log('Closing management endpoint...');
+		managementServer.close();
+		managementServer = undefined;
+	}
+
+	callback(null);
 }
 
 function obtainCertificates() {
@@ -275,7 +302,7 @@ function obtainCertificates() {
 
 			// all SSL certificates and keys were successfuly obtained
 			console.log('Success obtaining all SSL certificates.');
-			setupRouter();
+			initializeEndpoints();
 		}
 	}
 
@@ -471,8 +498,13 @@ function createProcess(context) {
 			var logger = function(data) { process.stdout.write('PID ' + context.routingEntry.process.pid + ':' + data); };
 			context.routingEntry.process.stdout.on('data', logger);
 			context.routingEntry.process.stderr.on('data', logger);
+			var currentProcesses = processes;
 			context.routingEntry.process.on('exit', function (code, signal) {
-				delete processes[port];
+				if (currentProcesses === processes) {
+					// avoid race condition in he recycle mode
+
+					delete processes[port];
+				}
 				console.log('Child process exited. App: ' + context.routingEntry.app.name + ', Port: ' + port + ', PID: ' + context.routingEntry.process.pid 
 					+ ', code: ' + code + ', signal: ' + signal);
 
@@ -550,7 +582,7 @@ function setupRouter() {
 
 	// setup HTTP/WS proxy
 
-	var server = httpProxy.createServer(onRouteRequest);
+	server = httpProxy.createServer(onRouteRequest);
 	server.proxy.on('proxyError', onProxyingError);
 	server.on('upgrade', function (req, res, head) { onRouteUpgradeRequest(req, res, head, server.proxy); });
 	server.listen(config.port);
@@ -559,7 +591,7 @@ function setupRouter() {
 		// setup HTTPS/WSS proxy along with SNI information for individual apps
 
 		var options = { https: { cert: config.sslCertificate, key: config.sslKey } };
-		var secureServer = httpProxy.createServer(options, onRouteRequest);
+		secureServer = httpProxy.createServer(options, onRouteRequest);
 		secureServer.proxy.secure = true;
 		secureServer.proxy.on('proxyError', onProxyingError);
 		secureServer.on('upgrade', function (req, res, head) { onRouteUpgradeRequest(req, res, head, secureServer.proxy); });
@@ -574,6 +606,136 @@ function setupRouter() {
 	}
 
 	console.log('Router successfuly started.');
+}
+
+function killChildProcesses(callback) {
+	console.log('Killing existing child processes...')
+
+	for (var i in processes) {
+		var p = processes[i];
+		try {
+			process.kill(p.pid);
+			console.log('Killed child process with PID ' + p.pid);
+		}
+		catch (e) {
+			console.log('Unable to kill child process with PID ' + p.pid + ': ' + e);
+		}
+	}
+
+	processes = {};	
+
+	callback(null);
+}
+
+function git(args, callback) {
+    if (typeof args === 'string') 
+    	args = [args];
+    var git = spawn(config.gitExe, args, config.root);
+    var stdout = ''
+    var stderr = ''
+    git.stdout.on('data', function (data) { stdout += data.toString(); })
+    git.stderr.on('data', function (data) { stderr += data.toString(); })
+    git.on('exit', function (code) {
+        var err = (code !== 0) ? { code: code, msg: stderr } : null
+        if (callback) callback(err, stdout, stderr)
+    })
+}
+
+function syncRepo(callback) {
+	console.log('Calling git reset --hard ...');
+	git([ 'reset', '--hard' ], function (err) {
+		if (err) {
+			console.log('Failed to reset the repository to HEAD.');
+			callback(err);
+		} 
+		else {
+			console.log('Calling git pull origin ' + config.remoteBranch + '...');
+			git([ 'pull', 'origin', config.remoteBranch ], function (err) {
+				if (err) {
+					console.log('Failed to pull from repository.');
+					callback(err);
+				}
+				else {
+					console.log('Calling git submodule update --init --recursive...');
+					git(['submodule', 'update', '--init', '--recursive'], function (err) {
+						if (err) {
+							console.log('Failed to update submodules in the repository.');
+						}
+
+						callback(err);
+					});
+				}
+			});
+		}
+	});
+}
+
+function recycleService() {
+
+	// stop services
+	closeEndpoints(function (err) {
+		if (err) throw err;
+
+		// terminate existing child processes
+		killChildProcesses(function (err) {
+			if (err) throw err;
+
+			// sync the repo
+			syncRepo(function (err) {
+				if (err) throw err;
+
+				// recalculate configuration & restart services
+				determineConfiguration();
+			});
+		});
+	});
+}
+
+function onManagementRequest(req, res) {
+	res.writeHead(501);
+	res.end();
+}
+
+function onPostReceiveMessage(req, res) {
+	if ((req.method === 'POST' || req.method === 'GET') && req.url === config.postReceive) {
+		console.log('Received post receive notification. Initializing recycle...');
+		res.writeHead(200, { 'Content-Type': 'text/plain' });
+		res.end('Recycle initialized at ' + new Date() + '\n');
+		recycleService();
+	}
+	else {
+		console.log('Received unrecognized request at the post receive notification endpoint. Verb: '
+			+ req.method + ', Path: ' + req.url);
+		res.writeHead(404);
+		res.end();
+	}
+}
+
+function setupManagement() {
+
+	console.log('Setting up the management endpoint...');
+
+	if (config.sslEnabled) {
+		var options = { cert: config.sslCertificate, key: config.sslKey };
+		managementServer = https.createServer(options, onManagementRequest).listen(config.externalManagementPort);
+		console.log('HTTPS (secure) management endpoint set up on port ' + config.externalManagementPort);
+	}
+	else {
+		managementServer = http.createServer(onManagementRequest).listen(config.externalManagementPort);
+		console.log('HTTP (unsecure) management endpoint set up on port ' + config.externalManagementPort);
+	}
+}
+
+function ensurePostReceiveHook() {
+	console.log('Setting up post receive hook endpoint...');
+
+	if (postReceiveServer) {
+		console.log('Post receive server is already running.');
+	}
+	else {
+		postReceiveServer = http.createServer(onPostReceiveMessage).listen(config.postReceivePort);
+		console.log('HTTP (unsecure) post receive endpoint set up on port ' + config.postReceivePort + ' and URL path ' + config.postReceive);
+	}
 }
 
 determineConfiguration();
