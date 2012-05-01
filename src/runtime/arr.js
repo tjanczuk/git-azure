@@ -637,6 +637,11 @@ function git(args, callback) {
     git.stderr.on('data', function (data) { stderr += data.toString(); })
     git.on('exit', function (code) {
         var err = (code !== 0) ? { code: code, msg: stderr } : null
+        if (err) {
+        	console.log('GIT error:');
+        	console.log(err);
+        	console.log('GIT stdout: ' + stdout);
+        }
         if (callback) callback(err, stdout, stderr)
     })
 }
