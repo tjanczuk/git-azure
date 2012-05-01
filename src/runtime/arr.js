@@ -630,7 +630,7 @@ function killChildProcesses(callback) {
 function git(args, callback) {
     if (typeof args === 'string') 
     	args = [args];
-    var git = spawn(config.gitExe, args, config.root);
+    var git = spawn(config.gitExe, args, { cwd: config.root });
     var stdout = ''
     var stderr = ''
     git.stdout.on('data', function (data) { stdout += data.toString(); })
@@ -638,9 +638,7 @@ function git(args, callback) {
     git.on('exit', function (code) {
         var err = (code !== 0) ? { code: code, msg: stderr } : null
         if (err) {
-        	console.log('GIT error:');
-        	console.log(err);
-        	console.log('GIT stdout: ' + stdout);
+        	console.log('git.exe returned error ' + err.code + ': ' + err.msg);
         }
         if (callback) callback(err, stdout, stderr)
     })
