@@ -7,7 +7,7 @@ var fs = require('fs')
 	, async = require('async')
 	, azure = require('azure')
 	, https = require('https')
-	, util = require('util'),
+	, util = require('util')
 	, uuid = require('node-uuid');
 
 exports.action = function (cmd) {
