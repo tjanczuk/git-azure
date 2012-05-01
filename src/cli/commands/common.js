@@ -33,7 +33,7 @@ exports.startAds = function () {
 		'Did you know you can develop node.js applications in WebMatrix on Windows?\nDownload it for free at http://www.microsoft.com/web/webmatrix/',
 		'Did you know Windows Azure SDK for node.js has everything you need to develop node.js apps on Windows?\nCheck out https://www.windowsazure.com/en-us/develop/nodejs/ for more.',
 		'Did you know that node.js developers live on average 2.7 years longer than PHP devs? [Quotation needed]',
-		'[Place for your ad] Send money and text of the ad to @tjanczuk. Seriously.'
+		'[Place for your ad] Send money and the text of the ad to @tjanczuk. Seriously.'
 	];
 
 	var showAd = function () {
