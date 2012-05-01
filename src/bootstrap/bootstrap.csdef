@@ -28,6 +28,7 @@
       <InputEndpoint name="HttpIn" protocol="tcp" port="80" />
       <InputEndpoint name="HttpsIn" protocol="tcp" port="443" />
       <InputEndpoint name="ManagementPublic" protocol="tcp" port="31415" />
+      <InputEndpoint name="PostReceivePublic" protocol="tcp" port="31417" />
       <InternalEndpoint name="ManagementInternal" protocol="tcp" port="31416" />
     </Endpoints>
     <Runtime executionContext="elevated">
@@ -40,6 +41,9 @@
         </Variable>
         <Variable name="MANAGEMENT_PUBLIC_PORT">
           <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/Endpoints/Endpoint[@name='ManagementPublic']/@port" />
+        </Variable>
+        <Variable name="POSTRECEIVE_PUBLIC_PORT">
+          <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/Endpoints/Endpoint[@name='PostReceivePublic']/@port" />
         </Variable>
         <Variable name="MANAGEMENT_INTERNAL_PORT">
           <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/Endpoints/Endpoint[@name='ManagementInternal']/@port" />
