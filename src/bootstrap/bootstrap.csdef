@@ -7,6 +7,9 @@
       <Setting name="AZURE_STORAGE_ACCOUNT" />
       <Setting name="AZURE_STORAGE_ACCESS_KEY" />
       <Setting name="AZURE_STORAGE_CONTAINER" />
+      <Setting name="POSTRECEIVE_URL_PATH" />
+      <Setting name="MANAGEMENT_USERNAME" />
+      <Setting name="MANAGEMENT_PASSWORD" />
     </ConfigurationSettings>
     <Imports>
       <Import moduleName="RemoteForwarder" />
@@ -62,6 +65,15 @@
         </Variable>
         <Variable name="AZURE_STORAGE_CONTAINER">
           <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/ConfigurationSettings/ConfigurationSetting[@name='AZURE_STORAGE_CONTAINER']/@value" />
+        </Variable>
+        <Variable name="POSTRECEIVE_URL_PATH">
+          <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/ConfigurationSettings/ConfigurationSetting[@name='POSTRECEIVE_URL_PATH']/@value" />
+        </Variable>
+        <Variable name="MANAGEMENT_USERNAME">
+          <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/ConfigurationSettings/ConfigurationSetting[@name='MANAGEMENT_USERNAME']/@value" />
+        </Variable>
+        <Variable name="MANAGEMENT_PASSWORD">
+          <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/ConfigurationSettings/ConfigurationSetting[@name='MANAGEMENT_PASSWORD']/@value" />
         </Variable>
       </Environment>
       <EntryPoint>
