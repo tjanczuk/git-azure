@@ -661,13 +661,18 @@ function git(args, callback) {
 function syncRepo(callback) {
 	console.log('Syncing the repo with command ' + config.syncCmd);
 	child_process.exec(config.syncCmd, function (err, stdout, stderr) {
-		if (err || stderr) {
+
+		var isNonEmptyString = function (s) {
+			return typeof s === 'string' && s.length > 0;
+		}
+
+		if (err || isNonEmptyString(stderr)) {
 			console.log('Failed to sync the repo: ' + err);
-			if (stderr) {
+			if (isNonEmptyString(stderr)) {
 				console.log('Stderr of sync command:');
 				console.log(stderr);
 			}
-			if (stdout) {
+			if (isNonEmptyString(stdout)) {
 				console.log('Stdout of sync command:');
 				console.log(stdout);
 			}	
@@ -676,7 +681,7 @@ function syncRepo(callback) {
 		}
 
 		console.log(stdout);
-		callback();
+		callback(null);
 	});
 }
 
