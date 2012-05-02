@@ -641,23 +641,6 @@ function killChildProcesses(callback) {
 	}
 }
 
-function git(args, callback) {
-    if (typeof args === 'string') 
-    	args = [args];
-    var git = spawn(config.gitExe, args, { cwd: config.root });
-    var stdout = ''
-    var stderr = ''
-    git.stdout.on('data', function (data) { stdout += data.toString(); })
-    git.stderr.on('data', function (data) { stderr += data.toString(); })
-    git.on('exit', function (code) {
-        var err = (code !== 0) ? { code: code, msg: stderr } : null
-        if (err) {
-        	console.log('git.exe returned error ' + err.code + ': ' + err.msg);
-        }
-        if (callback) callback(err, stdout, stderr)
-    })
-}
-
 function syncRepo(callback) {
 	console.log('Syncing the repo with command ' + config.syncCmd);
 	child_process.exec(config.syncCmd, function (err, stdout, stderr) {
@@ -666,22 +649,21 @@ function syncRepo(callback) {
 			return typeof s === 'string' && s.length > 0;
 		}
 
-		if (err || isNonEmptyString(stderr)) {
-			console.log('Failed to sync the repo: ' + err);
+		if (err) {
+			console.log('Failed to sync the repo: ');
+			console.log(err);
 			if (isNonEmptyString(stderr)) {
 				console.log('Stderr of sync command:');
 				console.log(stderr);
 			}
-			if (isNonEmptyString(stdout)) {
-				console.log('Stdout of sync command:');
-				console.log(stdout);
-			}	
-
-			callback(err || stderr);
 		}
 
-		console.log(stdout);
-		callback(null);
+		if (isNonEmptyString(stdout)) {
+			console.log('Stdout of sync command:');
+			console.log(stdout);
+		}	
+
+		callback(err);
 	});
 }
 
