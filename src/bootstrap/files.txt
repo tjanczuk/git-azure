@@ -3,3 +3,4 @@ download.exe;download.exe
 unzip.exe;unzip.exe
 setup_worker.cmd;setup_worker.cmd
 start_worker.cmd;start_worker.cmd
+sync_repo.cmd;sync_repo.cmd

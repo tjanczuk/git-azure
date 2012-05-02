@@ -1,7 +1,7 @@
 var httpProxy = require('http-proxy'),
 	http = require('http'),
 	https = require('https'),
-	spawn = require('child_process').spawn,
+	child_process = require('child_process'),
 	net = require('net'),
 	fs = require('fs'),
 	path = require('path'),
@@ -11,6 +11,7 @@ var processes = {};
 var config;
 var managementPassword;
 var server, secureServer, managementServer, postReceiveServer;
+var recycleInProgress;
 
 if (!fs.existsSync) {
 	// polyfill node v0.7 fs.existsSync with node v0.6 path.existsSync
@@ -27,10 +28,6 @@ console.log = function (thing) {
 	}
 };
 
-process.on('exit', function () {
-	killChildProcesses();
-});
-
 function determineConfiguration() {
 
 	// start with default configuration
@@ -43,8 +40,6 @@ function determineConfiguration() {
 		postReceivePort: 31417,
 		postReceive: '/postReceive',
 		managementUsername: 'admin',
-		gitExe: 'git',
-		remoteBranch: 'master',
 		// sslCertificateName: 'serverCertificate',
 		// sslKeyName: 'serverKey',
 		startPort: 8000,
@@ -59,16 +54,22 @@ function determineConfiguration() {
 			alias: 'root',
 			description: 'Directory with package.json configuration metadata and apps subdirectory'
 		})
+		.options('s', {
+			alias: 'syncCmd',
+			description: 'Command to run to synchronize the repository'
+		})
 		.options('n', {
 			alias: 'validateOnly',
 			description: 'Validate configuration without starting the runtime'
 		})
 		.check(function (args) { return !args.help; })
 		.check(function (args) { return fs.existsSync(args.r); })
+		.check(function (args) { return typeof args.syncCmd === 'string' && args.syncCmd.length > 0; })
 		.argv;
 
 	config.root = argv.r;
 	config.validateOnly = argv.n;
+	config.syncCmd = argv.syncCmd;
 
 	// read package.json from the root directory and override configuration defaults
 
@@ -103,8 +104,7 @@ function determineConfiguration() {
 		AZURE_STORAGE_CONTAINER: 'azureStorageContainer',
 		POSTRECEIVE_URL_PATH: 'postReceive',
 		MANAGEMENT_USERNAME: 'managementUsername',
-		POSTRECEIVE_PUBLIC_PORT: 'postReceivePort',
-		GIT_EXE: 'gitExe'
+		POSTRECEIVE_PUBLIC_PORT: 'postReceivePort'
 	};
 
 	for (var n in vars) {
@@ -266,6 +266,9 @@ function validateSslConfiguration() {
 }
 
 function initializeEndpoints() {
+	process.removeAllListeners('exit');
+	process.on('exit', killChildProcesses);
+
 	ensurePostReceiveHook();
 	setupManagement();
 	setupRouter();
@@ -481,7 +484,7 @@ function createProcess(context) {
 		console.log('Starting application ' + context.routingEntry.app.name + ' with entry point ' + absolutePath);
 		
 		try { 
-			context.routingEntry.process = spawn(process.execPath, [ absolutePath ], { env: env }); 
+			context.routingEntry.process = child_process.spawn(process.execPath, [ absolutePath ], { env: env }); 
 		}
 		catch (e) {
 			// empty
@@ -563,11 +566,20 @@ function loadApp(context) {
 }
 
 function onRouteRequest(req, res, proxy) {
+	if (isSystemInMaintenance(req, res)) {
+		return;
+	}
+
 	req.pause();
 	loadApp({ req: req, res: res, proxy: proxy});
 }
 
 function onRouteUpgradeRequest(req, socket, head, proxy) {
+	if (recycleInProgress) {
+		socket.destroy();
+		return;
+	}
+
 	socket.pause();
 	loadApp({ req: req, socket: socket, head: head, proxy: proxy});
 }
@@ -624,7 +636,9 @@ function killChildProcesses(callback) {
 
 	processes = {};	
 
-	callback(null);
+	if (callback) {
+		callback(null);
+	}
 }
 
 function git(args, callback) {
@@ -645,61 +659,76 @@ function git(args, callback) {
 }
 
 function syncRepo(callback) {
-	console.log('Calling git reset --hard ...');
-	git([ 'reset', '--hard' ], function (err) {
-		if (err) {
-			console.log('Failed to reset the repository to HEAD.');
-			callback(err);
-		} 
-		else {
-			console.log('Calling git pull origin ' + config.remoteBranch + '...');
-			git([ 'pull', 'origin', config.remoteBranch ], function (err) {
-				if (err) {
-					console.log('Failed to pull from repository.');
-					callback(err);
-				}
-				else {
-					console.log('Calling git submodule update --init --recursive...');
-					git(['submodule', 'update', '--init', '--recursive'], function (err) {
-						if (err) {
-							console.log('Failed to update submodules in the repository.');
-						}
+	console.log('Syncing the repo with command ' + config.syncCmd);
+	child_process.exec(config.syncCmd, function (err, stdout, stderr) {
+		if (err || stderr) {
+			console.log('Failed to sync the repo: ' + err);
+			if (stderr) {
+				console.log('Stderr of sync command:');
+				console.log(stderr);
+			}
+			if (stdout) {
+				console.log('Stdout of sync command:');
+				console.log(stdout);
+			}	
 
-						callback(err);
-					});
-				}
-			});
+			callback(err || stderr);
 		}
+
+		console.log(stdout);
+		callback();
 	});
 }
 
 function recycleService() {
 
-	// stop services
-	closeEndpoints(function (err) {
+	recycleInProgress = true;
+
+	// terminate existing child processes
+	killChildProcesses(function (err) {
 		if (err) throw err;
 
-		// terminate existing child processes
-		killChildProcesses(function (err) {
+		// sync the repo
+		syncRepo(function (err) {
 			if (err) throw err;
 
-			// sync the repo
-			syncRepo(function (err) {
+			// stop services
+			closeEndpoints(function (err) {
 				if (err) throw err;
 
 				// recalculate configuration & restart services
 				determineConfiguration();
+
+				recycleInProgress = false;
 			});
+
 		});
 	});
 }
 
+function isSystemInMaintenance(req, res) {
+	if (recycleInProgress) {
+		res.writeHead(503, { 'Content-Type': 'text/plain' });
+		res.end('The system is updating, please try again in a moment.');
+	}
+
+	return recycleInProgress;
+}
+
 function onManagementRequest(req, res) {
+	if (isSystemInMaintenance(req, res)) {
+		return;
+	}
+
 	res.writeHead(501);
 	res.end();
 }
 
 function onPostReceiveMessage(req, res) {
+	if (isSystemInMaintenance(req, res)) {
+		return;
+	}
+
 	if ((req.method === 'POST' || req.method === 'GET') && req.url === config.postReceive) {
 		console.log('Received post receive notification. Initializing recycle...');
 		res.writeHead(200, { 'Content-Type': 'text/plain' });

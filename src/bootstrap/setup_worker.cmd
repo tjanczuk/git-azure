@@ -51,39 +51,25 @@ if %ERRORLEVEL% NEQ 0 (
 )
 echo %DATE% %TIME% Repo cloned
 
-goto update_submodules
-
-:pull_only
-
-echo %DATE% %TIME% Pulling the repo...
-pushd %THIS%\repo
-%GIT% reset --hard
-if %ERRORLEVEL% NEQ 0 (
-   popd
-   echo %DATE% %TIME% ERROR Unable to reset the repository
-   exit /b -6
-)
-%GIT% pull origin %REMOTE_BRANCH%
-if %ERRORLEVEL% NEQ 0 (
-   popd
-   echo %DATE% %TIME% ERROR Unable to pull the repository
-   exit /b -7
-)
-popd
-echo %DATE% %TIME% Latest repository bits pulled
-
-:update_submodules
-
 echo %DATE% %TIME% Updating submodules...
 pushd %THIS%\repo
 %GIT% submodule update --init --recursive
 if %ERRORLEVEL% NEQ 0 (
    popd
    echo %DATE% %TIME% ERROR Updating submodules
-   exit /b -8
+   exit /b -6
 )
 popd
 echo %DATE% %TIME% Submodules updated
+
+goto post_setup
+
+:pull_only
+
+call %THIS%\sync_repo.cmd
+if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
+
+:post_setup
 
 if NOT EXIST %POST_SETUP% goto end
 
@@ -91,7 +77,7 @@ echo %DATE% %TIME% Running post setup from %POST_SETUP%...
 call %POST_SETUP%
 if %ERRORLEVEL% NEQ 0 (
    echo %DATE% %TIME% ERROR The post setup failed with %ERRORLEVEL%
-   exit /b -9
+   exit /b -8
 )
 echo %DATE% %TIME% Post setup finished
 
