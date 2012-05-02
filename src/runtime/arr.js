@@ -642,8 +642,15 @@ function killChildProcesses(callback) {
 }
 
 function syncRepo(callback) {
+
+	var callbackCalled;
+
 	console.log('Syncing the repo with command ' + config.syncCmd);
-	child_process.exec(config.syncCmd, function (err, stdout, stderr) {
+	var child = child_process.exec(config.syncCmd, function (err, stdout, stderr) {
+
+		if (callbackCalled) {
+			return;
+		}
 
 		var isNonEmptyString = function (s) {
 			return typeof s === 'string' && s.length > 0;
@@ -657,13 +664,34 @@ function syncRepo(callback) {
 				console.log(stderr);
 			}
 		}
+		else {
+			console.log('Successfuly synced the repo');
+		}
 
 		if (isNonEmptyString(stdout)) {
 			console.log('Stdout of sync command:');
 			console.log(stdout);
 		}	
 
+		callbackCalled = true;
 		callback(err);
+	});
+
+	// 'exit' was introduced in v0.7.x, it speeds up detection of process termination on
+	// windows; see https://github.com/joyent/node/pull/2944 for details
+
+	child.on('exit', function (code, signal) {
+		if (callbackCalled) {
+			return;
+		}
+
+		if (code === 0) {
+			console.log('Successfuly synced the repo');
+			callbackCalled = true;
+			callback(null);
+		}
+
+		// otherwise wait some more for the actual 'close' event to collect all output
 	});
 }
 

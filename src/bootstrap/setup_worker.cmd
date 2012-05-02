@@ -2,7 +2,7 @@
 
 echo %DATE% %TIME% Entering setup_worker.cmd
 
-SET NODE_URL=http://nodejs.org/dist/v0.7.0/node-v0.7.0.msi
+SET NODE_URL=http://nodejs.org/dist/v0.7.8/node-v0.7.8.msi
 SET GIT_URL=https://github.com/downloads/tjanczuk/git-azure/minigit-04272012.zip
 
 SET THIS=%~dp0
