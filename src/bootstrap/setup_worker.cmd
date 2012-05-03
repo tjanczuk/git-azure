@@ -9,6 +9,14 @@ SET THIS=%~dp0
 SET POST_SETUP=%THIS%\repo\.git-azure\src\bootstrap\post_setup.cmd
 SET GIT=%THIS%\bin\git.exe
 
+echo %DATE% %TIME% Granting permissions for all users to the deployment directory...
+icacls %THIS% /grant "Users":(OI)(CI)F
+if %ERRORLEVEL% NEQ 0 (
+   echo %DATE% %TIME% ERROR Granting permission
+   exit /b -9
+)
+echo %DATE% %TIME% Permissions granted
+
 echo %DATE% %TIME% Downloading prerequisities...
 %THIS%\download.exe 300 %NODE_URL% %THIS%\node.msi %GIT_URL% %THIS%\minigit.zip
 if %ERRORLEVEL% NEQ 0 (
