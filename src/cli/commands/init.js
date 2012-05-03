@@ -351,7 +351,7 @@ exports.action = function (cmd) {
 	function ensureCspkgUploaded() {
 		var blob = azure.createBlobService(config.storageAccountName, config.storageAccountKey);
 
-		var cspkgPath = path.resolve(config.projectRoot, gitAzureDir, 'src/bootstrap/bootstrap.cspkg');
+		var cspkgPath = path.resolve(config.git.projectRoot, gitAzureDir, 'src/bootstrap/bootstrap.cspkg');
 
 		if (!fs.existsSync(cspkgPath)) {
 			console.error('Unable to find the bootstrap package file at ' + cspkgPath);
@@ -563,8 +563,7 @@ exports.action = function (cmd) {
 	}
 
 	function generateRdpSettings() {
-
-		var tmpDir = path.resolve(config.projectRoot, gitAzureDir, 'src/bootstrap');
+		var tmpDir = path.resolve(config.git.projectRoot, gitAzureDir, 'src/bootstrap');
 		var passwordFile = path.resolve(tmpDir, 'password.clear.openssl');
 		var encryptedPasswordFile = path.resolve(tmpDir, 'password.encrypted.openssl');
 		var keyFile = path.resolve(tmpDir, 'key.pem.openssl');
@@ -632,7 +631,7 @@ exports.action = function (cmd) {
 	}
 
 	function gitOrDie(args, successMessage, dieMessage, callback) {
-		common.git(args, config.projectRoot, function (err, result) {
+		common.git(args, config.git.projectRoot, function (err, result) {
 			if (err) {
 				console.error(dieMessage);
 				console.error(err.msg);
