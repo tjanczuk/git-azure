@@ -115,26 +115,26 @@ exports.action = function (cmd) {
 						console.log();
 						console.log(('OK: your Windows Azure service ' + config.serviceName + ' is ready').green);
 						console.log();
-						console.log('The service can be accessed at the following endpoints:');
+						console.log('Configure a post-receive hook in your repository to enable automatic updates on \'git push\'. '.blue
+									+ 'Your post-receive hook URL is:');
+						console.log('  http://' + config.serviceName + '.cloudapp.net:31417' + config.postReceive);
+						console.log();
+						console.log('The service can be accessed at the following endpoints:'.blue);
 						console.log('  http://' + config.serviceName + '.cloudapp.net         - HTTP application endpoint');
 						console.log('  https://' + config.serviceName + '.cloudapp.net        - HTTPS application endpoint (if SSL is configured)');
 						console.log('  ws://' + config.serviceName + '.cloudapp.net           - WebSocket application traffic');
 						console.log('  wss://' + config.serviceName + '.cloudapp.net          - secure WebSocket application traffic (if SSL is configured)');
 						console.log('You can configure additional A entires in your DNS directed at IP address ' + response.InputEndpointList.InputEndpoint[0].Vip 
 									+ ' (useful for /etc/hosts).');
-						console.log('You can configure additional CNAME entires in your DNS directed at ' + config.serviceName + '.cloudapp.net ' 
+						console.log('You can configure additional CNAME entires in your DNS directed at ' + config.serviceName + '.cloudapp.net' 
 									+ ' (recommended for production).');
 						console.log();
-						console.log('Management endpoints:');
+						console.log('Management endpoints:'.blue);
 						console.log('  https://' + config.serviceName + '.cloudapp.net:31415  - management endpoint (if SSL is configured)');
 						console.log('  http://' + config.serviceName + '.cloudapp.net:31415   - management endpoint (if SSL is not configured)');
 						console.log('  https://windows.azure.com - Windows Azure management portal (billing, accounts etc.)');
 						console.log();
-						console.log('Configure a post-receive hook in your repository to enable automatic updates on \'git push\'. '
-									+ 'Your post-receive hook URL is:');
-						console.log('  http://' + config.serviceName + '.cloudapp.net:31417' + config.postReceive);
-						console.log();
-						console.log('Visit https://github.com/tjanczuk/git-azure for walkthroughs on setting up SSL, support for multiple apps, and more.');
+						console.log('Visit https://github.com/tjanczuk/git-azure for walkthroughs on setting up SSL, support for multiple apps, and more.'.blue);
 
 						clearInterval(adsInterval);
 						clearInterval(waitInterval);
