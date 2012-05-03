@@ -34,7 +34,7 @@
       <InputEndpoint name="PostReceivePublic" protocol="tcp" port="31417" />
       <InternalEndpoint name="ManagementInternal" protocol="tcp" port="31416" />
     </Endpoints>
-    <Runtime executionContext="elevated">
+    <Runtime executionContext="limited">
       <Environment>
         <Variable name="HTTP_PORT">
           <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/Endpoints/Endpoint[@name='HttpIn']/@port" />
