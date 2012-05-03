@@ -151,15 +151,25 @@ function determineConfiguration() {
 		if (!config.apps[file]) {
 			['server.js', 'app.js'].some(function (item) {
 				if (fs.existsSync(path.resolve(appDir, item))) {
+
 					config.apps[file] = {
 						name: file,
 						script: item,
-						hosts: {
-							'*': {
-								ssl: 'allowed'
-							}
-						}
-					};	
+						hosts: {}
+					};
+
+					var indexOfDot = file.indexOf('.');
+					if (0 < indexOfDot && indexOfDot < (file.length - 1)) {
+						// directory name has a dot somewhere in the middle 
+						// - assume the host name is equal to the directory name
+
+						config.apps[file].hosts[file] = { ssl: 'allowed' };
+					}
+					else {
+						// construct a wildcard host name; only one such app is allowed
+
+						config.apps[file].hosts['*'] = { ssl: 'allowed' };
+					}
 
 					return true;				
 				}

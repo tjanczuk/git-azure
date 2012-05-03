@@ -112,6 +112,7 @@ exports.action = function (cmd) {
 						process.exit(1);						
 					}
 					else if (success) {
+						console.log();
 						console.log(('OK: your Windows Azure service ' + config.serviceName + ' is ready').green);
 						console.log();
 						console.log('The service can be accessed at the following endpoints:');
@@ -119,7 +120,10 @@ exports.action = function (cmd) {
 						console.log('  https://' + config.serviceName + '.cloudapp.net        - HTTPS application endpoint (if SSL is configured)');
 						console.log('  ws://' + config.serviceName + '.cloudapp.net           - WebSocket application traffic');
 						console.log('  wss://' + config.serviceName + '.cloudapp.net          - secure WebSocket application traffic (if SSL is configured)');
-						console.log('You can configure additional DNS names directed at IP address ' + response.InputEndpointList.InputEndpoint[0].Vip);
+						console.log('You can configure additional A entires in your DNS directed at IP address ' + response.InputEndpointList.InputEndpoint[0].Vip 
+									+ ' (useful for /etc/hosts).');
+						console.log('You can configure additional CNAME entires in your DNS directed at ' + config.serviceName + '.cloudapp.net ' 
+									+ ' (recommended for production).');
 						console.log();
 						console.log('Management endpoints:');
 						console.log('  https://' + config.serviceName + '.cloudapp.net:31415  - management endpoint (if SSL is configured)');
