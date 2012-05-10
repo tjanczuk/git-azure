@@ -38,17 +38,17 @@ exports.action = function (cmd) {
 		}
 
 		common.httpsRequest(
-			config.subscriptionId,
+			config.subscription,
 			config.managementCertificate,
 			managementHost,
-			'/' + config.subscriptionId + '/services/hostedservices/' + config.serviceName + '/deploymentslots/production',
+			'/' + config.subscription + '/services/hostedservices/' + config.serviceName + '/deploymentslots/production',
 			'GET',
 			null,
 			{ 'x-ms-version': '2011-10-01' },
 			function (err, res, body) {
 				var onError = function (err, res, body) {
 					console.error('Unable to obtain status of the production deployment of service with name ' + config.serviceName 
-						+ ' under subscription ' + config.subscriptionId + ':');
+						+ ' under subscription ' + config.subscription + ':');
 					if (err) {
 						console.error(err.toString());
 					}
@@ -179,10 +179,10 @@ exports.action = function (cmd) {
 		);
 
 		common.httpsRequest(
-			config.subscriptionId,
+			config.subscription,
 			config.managementCertificate,
 			managementHost,
-			'/' + config.subscriptionId + '/services/hostedservices/' + config.serviceName + '/deploymentslots/production',
+			'/' + config.subscription + '/services/hostedservices/' + config.serviceName + '/deploymentslots/production',
 			'POST',
 			content,
 			{ 'x-ms-version': '2011-08-01', 'Content-Type': 'application/xml' },
@@ -190,7 +190,7 @@ exports.action = function (cmd) {
 			function (err, res, body) {
 				if (err || res.statusCode !== 200) {
 					console.error('Unable to create deployment of service with name ' + config.serviceName 
-						+ ' under subscription ' + config.subscriptionId + ':');
+						+ ' under subscription ' + config.subscription + ':');
 					if (err) {
 						console.error(err.toString());
 					}
@@ -226,17 +226,17 @@ exports.action = function (cmd) {
 		);
 
 		common.httpsRequest(
-			config.subscriptionId,
+			config.subscription,
 			config.managementCertificate,
 			managementHost,
-			'/' + config.subscriptionId + '/services/hostedservices/' + config.serviceName + '/certificates',
+			'/' + config.subscription + '/services/hostedservices/' + config.serviceName + '/certificates',
 			'POST',
 			content,
 			{ 'x-ms-version': '2009-10-01', 'Content-Type': 'application/xml' },
 			function (err, res, body) {
 				if (err || res.statusCode !== 200) {
 					console.error('Unable to upload X.509 certificate to enable remote access to the ' + config.serviceName 
-						+ ' service under subscription ' + config.subscriptionId + ':');
+						+ ' service under subscription ' + config.subscription + ':');
 					if (err) {
 						console.error(err.toString());
 					}
@@ -248,7 +248,7 @@ exports.action = function (cmd) {
 				}
 
 				console.log(('OK: uploaded X.509 certificate to enable remote access to the ' + config.serviceName 
-					+ ' service under subscription ' + config.subscriptionId + '.').green);
+					+ ' service under subscription ' + config.subscription + '.').green);
 
 				createDeployment();
 			}
@@ -271,17 +271,17 @@ exports.action = function (cmd) {
 		);
 
 		common.httpsRequest(
-			config.subscriptionId,
+			config.subscription,
 			config.managementCertificate,
 			managementHost,
-			'/' + config.subscriptionId + '/services/hostedservices',
+			'/' + config.subscription + '/services/hostedservices',
 			'POST',
 			content,
 			{ 'x-ms-version': '2010-10-28', 'Content-Type': 'application/xml' },
 			function (err, res, body) {
 				if (err || res.statusCode !== 201) {
 					console.error('Unable to create service with name ' + config.serviceName 
-						+ ' under subscription ' + config.subscriptionId + ':');
+						+ ' under subscription ' + config.subscription + ':');
 					if (err) {
 						console.error(err.toString());
 					}
@@ -293,7 +293,7 @@ exports.action = function (cmd) {
 				}
 
 				console.log(('OK: created service ' + config.serviceName 
-					+ ' under subscription ' + config.subscriptionId + '.').green);
+					+ ' under subscription ' + config.subscription + '.').green);
 
 				uploadPasswordEncryptionCertificate();
 			}
@@ -409,10 +409,10 @@ exports.action = function (cmd) {
 </UpdateDeploymentStatus>';
 
 			common.httpsRequest(
-				config.subscriptionId,
+				config.subscription,
 				config.managementCertificate,
 				managementHost,
-				'/' + config.subscriptionId + '/services/hostedservices/' + config.serviceName + '/deploymentslots/' 
+				'/' + config.subscription + '/services/hostedservices/' + config.serviceName + '/deploymentslots/' 
 					+ slot + '/?comp=status',
 				'POST',
 				content,
@@ -421,7 +421,7 @@ exports.action = function (cmd) {
 				function (err, res, body) {
 					if (err || res.statusCode !== 200 && res.statusCode !== 404) {
 						console.error('Unable to suspend deployment slot ' + slot + ' of service ' + config.serviceName 
-							+ ' under subscription ' + config.subscriptionId + ':');
+							+ ' under subscription ' + config.subscription + ':');
 						if (err) {
 							console.error(err.toString());
 						}
@@ -433,7 +433,7 @@ exports.action = function (cmd) {
 					}
 
 					console.log(('OK: suspended deployment slot ' + slot + ' of service ' + config.serviceName 
-						+ ' under subscription ' + config.subscriptionId + '.').green);
+						+ ' under subscription ' + config.subscription + '.').green);
 
 					callback(err, res, body);
 				}
@@ -442,10 +442,10 @@ exports.action = function (cmd) {
 
 		var deleteDeploymentSlot = function (slot, callback) {
 			common.httpsRequest(
-				config.subscriptionId,
+				config.subscription,
 				config.managementCertificate,
 				managementHost,
-				'/' + config.subscriptionId + '/services/hostedservices/' + config.serviceName + '/deploymentslots/' + slot,
+				'/' + config.subscription + '/services/hostedservices/' + config.serviceName + '/deploymentslots/' + slot,
 				'DELETE',
 				null,
 				{ 'x-ms-version': '2009-10-01' },
@@ -453,7 +453,7 @@ exports.action = function (cmd) {
 				function (err, res, body) {
 					if (err || res.statusCode !== 200 && res.statusCode !== 404) {
 						console.error('Unable to delete deployment slot ' + slot + ' of service ' + config.serviceName 
-							+ ' under subscription ' + config.subscriptionId + ':');
+							+ ' under subscription ' + config.subscription + ':');
 						if (err) {
 							console.error(err.toString());
 						}
@@ -465,7 +465,7 @@ exports.action = function (cmd) {
 					}
 
 					console.log(('OK: deleted deployment slot ' + slot + ' of service ' + config.serviceName 
-						+ ' under subscription ' + config.subscriptionId + '.').green);
+						+ ' under subscription ' + config.subscription + '.').green);
 
 					callback(err, res, body);
 				}
@@ -474,20 +474,17 @@ exports.action = function (cmd) {
 
 		var deleteService = function (callback) {
 
-			console.log(('INFO: if you like coffee, now is the time to get yourself a cup. '
-				+ 'The process of provisioning your own VM in Windows Azure typically takes several minutes...').blue);
-
 			common.httpsRequest(
-				config.subscriptionId,
+				config.subscription,
 				config.managementCertificate,
 				managementHost,
-				'/' + config.subscriptionId + '/services/hostedservices/' + config.serviceName,
+				'/' + config.subscription + '/services/hostedservices/' + config.serviceName,
 				'DELETE',
 				null,
 				{ 'x-ms-version': '2010-10-28' },
 				function (err, res, body) {
 					if (err || res.statusCode !== 200 && res.statusCode !== 404) {
-						console.error('Unable to delete service ' + config.serviceName + ' under subscription ' + config.subscriptionId + '.');
+						console.error('Unable to delete service ' + config.serviceName + ' under subscription ' + config.subscription + '.');
 						if (err) {
 							console.error(err.toString());
 						}
@@ -498,7 +495,7 @@ exports.action = function (cmd) {
 						process.exit(1);
 					}
 
-					console.log(('OK: deleted service ' + config.serviceName + ' under subscription ' + config.subscriptionId + '.').green);
+					console.log(('OK: deleted service ' + config.serviceName + ' under subscription ' + config.subscription + '.').green);
 
 					callback(err, res, body);
 				}
@@ -519,11 +516,12 @@ exports.action = function (cmd) {
 	}
 
 	function checkHostedServiceNameAvailable() {
+
 		common.httpsRequest(
-			config.subscriptionId,
+			config.subscription,
 			config.managementCertificate,
 			managementHost,
-			'/' + config.subscriptionId + '/services/hostedservices/' + config.serviceName,
+			'/' + config.subscription + '/services/hostedservices/' + config.serviceName,
 			'GET',
 			null,
 			{ 'x-ms-version': '2011-10-01' },
@@ -537,18 +535,18 @@ exports.action = function (cmd) {
 				if (res.statusCode === 200) {
 					if (config.force) {
 						console.log(('OK: found existing hosted service with name ' + config.serviceName 
-							+ ' under subscription ' + config.subscriptionId + '. It will be deleted and re-created.').green);
+							+ ' under subscription ' + config.subscription + '. It will be deleted and re-created.').green);
 						deleteHostedService();
 					}
 					else {
 						console.error('Found existing hosted service with name ' + config.serviceName 
-							+ ' under subscription ' + config.subscriptionId + '. To replace the service use --force.');
+							+ ' under subscription ' + config.subscription + '. To replace the service use --force.');
 						process.exit(1);
 					}
 				}
 				else if (res.statusCode === 404 && -1 < body.indexOf('The hosted service does not exist')) {
 					console.log(('OK: service name ' + config.serviceName + ' is available under the subscription ' 
-						+ config.subscriptionId).green);
+						+ config.subscription).green);
 					ensureCspkgUploaded();
 				}
 				else {
@@ -650,7 +648,7 @@ exports.action = function (cmd) {
 		var gitAzure = path.resolve(config.git.projectRoot, gitAzureDir)
 		if (fs.existsSync(gitAzure)) {
 			console.log(('OK: detected existing ' + gitAzure + ' directory, skipping scaffolding.').green);
-			generateRdpSettings();
+			ensureStorageAccount(true);
 		}
 		else 
 			async.series([
@@ -688,8 +686,115 @@ exports.action = function (cmd) {
 			function () {
 				console.log(('OK: created and pushed scaffolding of the git-azure runtime at ' + gitAzure).green);
 
-				generateRdpSettings();
+				ensureStorageAccount(true);
 			});
+	}
+
+	function createStorageAccount() {
+
+		console.log(('OK: creating storage account ' + config.storageAccountName + '...').green);
+
+		var template = '<?xml version="1.0" encoding="utf-8"?>\
+<CreateStorageServiceInput xmlns="http://schemas.microsoft.com/windowsazure">\
+   <ServiceName>%s</ServiceName>\
+   <Label>%s</Label>\
+   <Location>%s</Location>\
+</CreateStorageServiceInput>';
+
+		var content = util.format(template,
+			config.storageAccountName,
+			new Buffer(config.storageAccountName).toString('base64'),
+			config.serviceLocation
+		);
+
+		common.httpsRequest(
+			config.subscription,
+			config.managementCertificate,
+			managementHost,
+			'/' + config.subscription + '/services/storageservices',
+			'POST',
+			content,
+			{ 'x-ms-version': '2011-06-01', 'Content-Type': 'application/xml' },
+			true,
+			function (err, res, body) {
+				if (err || res.statusCode !== 200) {
+					console.error('Unable to create storage account ' + config.storageAccountName + 
+						' under subscription ' + config.subscription + ':');
+					if (err) {
+						console.error(err.toString());
+					}
+					else if (res.statusCode === 409) {
+						console.error('A storage account with name ' + config.storageAccountName + ' already exists.');
+						console.error('Please specify a different name with --storageAccountName');
+					}
+					else {
+						console.error('Status code: ' + res.statusCode + ', response body:');
+						console.error(body);
+					}
+					process.exit(1);
+				}
+
+				console.log(('OK: created storage account ' + config.storageAccountName + '                ').green);
+
+				ensureStorageAccount(false);
+			}
+		);
+	}
+
+	function ensureStorageAccount(createIfNotExists) {
+
+		if (createIfNotExists) {
+			console.log(('INFO: if you like coffee, now is the time to get yourself a cup. '
+				+ 'The process of provisioning your own VM in Windows Azure typically takes several minutes.').blue);
+		}
+
+		common.httpsRequest(
+			config.subscription,
+			config.managementCertificate,
+			managementHost,
+			'/' + config.subscription + '/services/storageservices/' + config.storageAccountName + '/keys',
+			'GET',
+			null,
+			{ 'x-ms-version': '2009-10-01' },
+			function (err, res, body) {
+				if (err) {
+					console.error('Unable to get storage account keys for storage account ' + config.storageAccountName + ':');
+					console.error(err);
+					process.exit(1);
+				}
+
+				if (res.statusCode === 200) {
+
+				    var parser = new xml2js.Parser();
+
+				    parser.on('end', processSettings);
+				    try {
+				        parser.parseString(body);
+				    } catch (err) {
+				        console.error('Unable to parse resposne to the request for key for storage account ' + config.storageAccountName
+				        	+ '. The response is:');
+				        console.error(body);
+				        process.exit(1)
+				    }
+
+				    function processSettings(settings) {
+				    	config.storageAccountKey = settings.StorageServiceKeys.Primary;
+						console.log(('OK: obtained keys for storage account ' + config.storageAccountName).green);
+
+						generateRdpSettings();
+				    }
+				}
+				else if (res.statusCode === 404 && createIfNotExists) {
+					createStorageAccount();
+				}
+				else {
+					console.error('Unable to get storage account keys for storage account ' + config.storageAccountName + ':');
+					console.error('Status code: ' + res.statusCode + ', response body:');
+					console.error(body);
+					process.exit(1);
+				}
+			}
+		);
 	}
 
 	function processPublishSettings() {
@@ -707,40 +812,41 @@ exports.action = function (cmd) {
 	    function processSettings(settings) {
 	        var attribs = settings.PublishProfile['@']
 
-	        // validate or establish subscriptionId to use
+	        // validate or establish subscription to use
 
 	        var subs = settings.PublishProfile.Subscription
 	        if (subs === 'undefined') 
-	            subs = []
+	            subs = [];
 	        else if (typeof (subs[0]) === 'undefined') 
 	            subs = [subs];
 
-	        if (config.subscriptionId) {
-	        	var found = false
+	        if (config.subscription) {
+	        	var found = false;
 	        	for (var index in subs)
-	        		if (config.subscriptionId === subs[index]['@'].Id) {
-	        			found = true
-	        			break
+	        		if (config.subscription === subs[index]['@'].Id || config.subscription === subs[index]['@'].Name) {
+	        			config.subscription = subs[index]['@'].Id;
+	        			found = true;
+	        			break;
 	        		}
 
 	        	if (!found) {
 	        		console.error('The *.publishSettings file ' + config.publishSettings 
-	        			+ ' does not contain a management certificate for requested subscriptionId ' 
-	        			+ config.subscriptionId)
-	        		process.exit(1)
+	        			+ ' does not contain a management certificate for requested subscription ' 
+	        			+ config.subscription);
+	        		process.exit(1);
 	        	}
 	        }
 	        else {
 	        	// pick first subscription Id by default
 	        	if (subs.length > 0) {
-	        		config.subscriptionId = subs[0]['@'].Id
-	        		console.log('Choosing subscription name ' + subs[0]['@'].Name + ' with subscriptionId '
-	        			+ config.subscriptionId)
+	        		config.subscription = subs[0]['@'].Id;
+	        		console.log('Choosing subscription name ' + subs[0]['@'].Name + ' with subscription '
+	        			+ config.subscription);
 	        	}
 	        	else {
 	        		console.error('The *.publishSettings file ' + config.publishSettings 
-	        			+ ' does not specify any subscriptions.') 
-	        		process.exit(1)
+	        			+ ' does not specify any subscriptions.');
+	        		process.exit(1);
 	        	}
 	        }
 
@@ -761,14 +867,14 @@ exports.action = function (cmd) {
 	        console.log('OK: *.publishSettings file processed.'.green)
 	    }
 
-		ensureGitAzureSubmodule()
+		ensureGitAzureSubmodule();
 	}
 
 	function ensureManagementCertificate() {
 		if (config.managementCertificate)
-			ensureGitAzureSubmodule()
+			ensureStorageAccount(true);
 		else 
-			processPublishSettings()
+			processPublishSettings();
 	}
 
 	function checkParametersValid() {
@@ -785,8 +891,8 @@ exports.action = function (cmd) {
 		}
 
 		var paramOutline = {
-			'Windows Azure service settings' : [ 'serviceName', 'subscriptionId', 'publishSettings', 'serviceLocation', 'instances' ],
-			'Windows Azure storage settings' : [ 'storageAccountName', 'storageAccountKey', 'blobContainerName' ],
+			'Windows Azure service settings' : [ 'serviceName', 'subscription', 'publishSettings', 'serviceLocation', 'instances' ],
+			'Windows Azure storage settings' : [ 'storageAccountName', 'blobContainerName' ],
 			'Windows Azure RDP and Management settings' : [ 'username', 'password' ],
 			'Git settings' : [ 'remote_url', 'branch' ]
 		};
@@ -795,7 +901,7 @@ exports.action = function (cmd) {
 		for (var i in paramOutline) {
 			console.log('  ' + i);
 			paramOutline[i].forEach(function (item) {
-				if (item === 'password' || item === 'storageAccountKey') {
+				if (item === 'password') {
 					console.log('    ' + item + ': <hidden>');
 				}
 				else {
@@ -819,7 +925,7 @@ exports.action = function (cmd) {
 
 		var missing = [];
 
-		['publishSettings', 'storageAccountName', 'storageAccountKey', 'serviceName', 'serviceLocation', 
+		['publishSettings', 'serviceName', 'serviceLocation', 
 		 'instances', 'remote', 'branch', 'username', 'password'].forEach(function (item) {
 			if (!config[item])
 				missing.push('--' + item);
@@ -827,6 +933,10 @@ exports.action = function (cmd) {
 
 		if (!config.blobContainerName) {
 			config.blobContainerName = config.serviceName;
+		}
+
+		if (!config.storageAccountName) {
+			config.storageAccountName = config.serviceName.replace(/-/g, '');
 		}
 
 		if (!config.postReceive) {
@@ -840,9 +950,9 @@ exports.action = function (cmd) {
 			console.error('The following required parameters must be specified:\n')
 			missing.forEach(console.error)
 			console.error('\nYou can specify parameters either as command line options, e.g.\n')
-			console.error('    git azure init --subscriptionId 342d6bc9-21b7-427d-a31c-04956f221bd2\n')
+			console.error('    git azure init --subscription 342d6bc9-21b7-427d-a31c-04956f221bd2\n')
 			console.error("or by using the 'azure' section of Git config, e.g.\n")
-			console.error('    git config azure.subscriptionId 342d6bc9-21b7-427d-a31c-04956f221bd2')
+			console.error('    git config azure.subscription 342d6bc9-21b7-427d-a31c-04956f221bd2')
 			if (!config.managementCertificate && !config.publishSettings) 
 				console.error('\nYou can download the *.publishSettings file for your Windows Azure subscription from '
 							  + 'https://windows.azure.com/download/publishprofile.aspx')

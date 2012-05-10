@@ -43,7 +43,7 @@ exports.startAds = function () {
 	return setInterval(showAd, 16000);
 };
 
-exports.httpsRequest = 	function (subscriptionId, cert, host, url, method, body, headers, isLongLasting, callback) {
+exports.httpsRequest = 	function (subscription, cert, host, url, method, body, headers, isLongLasting, callback) {
 	if (typeof isLongLasting === 'function') {
 		callback = isLongLasting;
 		isLongLasting = undefined;
@@ -66,10 +66,10 @@ exports.httpsRequest = 	function (subscriptionId, cert, host, url, method, body,
 
 	var waitForAsyncOperation = function (requestId) {
 		exports.httpsRequest(
-			subscriptionId,
+			subscription,
 			cert,
 			'management.core.windows.net',
-			'/' + subscriptionId + '/operations/' + requestId,
+			'/' + subscription + '/operations/' + requestId,
 			'GET',
 			null,
 			{ 'x-ms-version': '2009-10-01' },
@@ -166,10 +166,9 @@ exports.git = function (args, dir, callback) {
 }
 
 exports.gitAzureConfigNames = [
-	'subscriptionId',
+	'subscription',
 	'publishSettings',
 	'storageAccountName',
-	'storageAccountKey',
 	'serviceName',
 	'serviceLocation',
 	'instances',
