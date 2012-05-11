@@ -28,14 +28,104 @@ exports.action = function (cmd) {
 	var waitInterval, adsInterval;
 	var startTime, endTime;
 
-	function waitForDeployment() {
+	function captureEndTime() {
+		endTime = new Date();
+		console.log(('Finished at ' + new Date()).grey);
+		var duration = endTime - startTime;
+		console.log(('Duration ' + Math.floor(duration / 60000) + ' min ' + Math.floor((duration % 60000) / 1000) + ' sec.').grey);
+	}
 
-		var captureEndTime = function() {
-			endTime = new Date();
-			console.log(('Finished at ' + new Date()).grey);
-			var duration = endTime - startTime;
-			console.log(('Duration ' + Math.floor(duration / 60000) + ' min ' + Math.floor((duration % 60000) / 1000) + ' sec.').grey);
+	function displaySummary() {
+		console.log(('OK: your Windows Azure service ' + config.serviceName + ' is ready').green);
+		console.log();
+		console.log('Configure a post-receive hook in your repository to enable automatic updates on \'git push\'. '.blue
+					+ 'Your post-receive hook URL is:');
+		console.log('  http://' + config.serviceName + '.cloudapp.net:31417' + config.postReceive);
+		console.log();
+		console.log('The service can be accessed at the following endpoints:'.blue);
+		console.log('  http://' + config.serviceName + '.cloudapp.net         - HTTP application endpoint');
+		console.log('  https://' + config.serviceName + '.cloudapp.net        - HTTPS application endpoint (if SSL is configured)');
+		console.log('  ws://' + config.serviceName + '.cloudapp.net           - WebSocket application traffic');
+		console.log('  wss://' + config.serviceName + '.cloudapp.net          - secure WebSocket application traffic (if SSL is configured)');
+		console.log('You can configure additional A entires in your DNS directed at IP address ' + config.ip
+					+ ' (useful for /etc/hosts).');
+		console.log('You can configure additional CNAME entires in your DNS directed at ' + config.serviceName + '.cloudapp.net' 
+					+ ' (recommended for production).');
+		console.log();
+		console.log('Management endpoints:'.blue);
+		console.log('  https://' + config.serviceName + '.cloudapp.net:31415  - management endpoint (if SSL is configured)');
+		console.log('  http://' + config.serviceName + '.cloudapp.net:31415   - management endpoint (if SSL is not configured)');
+		console.log('  https://windows.azure.com - Windows Azure management portal (billing, accounts etc.)');
+		console.log();
+		console.log('Visit https://github.com/tjanczuk/git-azure for walkthroughs on setting up SSL, support for multiple apps, and more.'.blue);
+
+		captureEndTime();
+
+		process.exit(0);						
+
+	}
+
+	function storeConfigInGit() {
+		if (!config.noCache) {
+			var data = {
+				publishSettings: config.publishSettings,
+				serviceName: config.serviceName,
+				username: config.username,
+				password: config.password,
+				storageAccountName: config.storageAccountName,
+				storageAccountKey: config.storageAccountKey,
+				subscription: config.subscription,
+				serviceLocation: config.serviceLocation,
+				instances: config.instances,
+				blobContainerName: config.blobContainerName,
+				remote: config.remote,
+				branch: config.branch,
+				postReceive: config.postReceive,
+				postReceiveHttp: 'http://' + config.serviceName + '.coudapp.net:31417' + config.postReceive,
+				ip: config.ip,
+				cname: config.serviceName + '.cloudapp.net',
+				appHttp: 'http://' + config.serviceName + '.coudapp.net',
+				appHttps: 'https://' + config.serviceName + '.coudapp.net',
+				appWs: 'ws://' + config.serviceName + '.cloudapp.net',
+				appWss: 'wss://' + config.serviceName + '.cloudapp.net',
+				managementHttp: 'http://' + config.serviceName + '.cloudapp.net:31415',
+				managementHttps: 'https://' + config.serviceName + '.cloudapp.net:31415'
+			};
+
+			var settings = Object.getOwnPropertyNames(data);
+
+			var storeOne = function (index) {
+				if (index < settings.length) {
+					common.git(
+						['config', 'azure.' + settings[index], data[settings[index]]],
+						config.git.projectRoot,
+						function (err) {
+							if (err) {
+								console.error('Unable to cache settings in Git configuration. Your service has deployed successfuly '
+									+ 'but you will need to manually provide configuration settings for subsequent runs of '
+									+ 'the \'git azure\' command.');
+								displaySummary();
+							}
+							else {
+								storeOne(index + 1);
+							}
+						}
+					);
+				}
+				else {
+					console.log('OK: Azure service settings have been cached in Git configuration'.green);
+					displaySummary();
+				}
+			};
+
+			storeOne(0);
 		}
+		else {
+			displaySummary();
+		}
+	}
+
+	function waitForDeployment() {
 
 		common.httpsRequest(
 			config.subscription,
@@ -112,36 +202,12 @@ exports.action = function (cmd) {
 						process.exit(1);						
 					}
 					else if (success) {
-						console.log();
-						console.log(('OK: your Windows Azure service ' + config.serviceName + ' is ready').green);
-						console.log();
-						console.log('Configure a post-receive hook in your repository to enable automatic updates on \'git push\'. '.blue
-									+ 'Your post-receive hook URL is:');
-						console.log('  http://' + config.serviceName + '.cloudapp.net:31417' + config.postReceive);
-						console.log();
-						console.log('The service can be accessed at the following endpoints:'.blue);
-						console.log('  http://' + config.serviceName + '.cloudapp.net         - HTTP application endpoint');
-						console.log('  https://' + config.serviceName + '.cloudapp.net        - HTTPS application endpoint (if SSL is configured)');
-						console.log('  ws://' + config.serviceName + '.cloudapp.net           - WebSocket application traffic');
-						console.log('  wss://' + config.serviceName + '.cloudapp.net          - secure WebSocket application traffic (if SSL is configured)');
-						console.log('You can configure additional A entires in your DNS directed at IP address ' + response.InputEndpointList.InputEndpoint[0].Vip 
-									+ ' (useful for /etc/hosts).');
-						console.log('You can configure additional CNAME entires in your DNS directed at ' + config.serviceName + '.cloudapp.net' 
-									+ ' (recommended for production).');
-						console.log();
-						console.log('Management endpoints:'.blue);
-						console.log('  https://' + config.serviceName + '.cloudapp.net:31415  - management endpoint (if SSL is configured)');
-						console.log('  http://' + config.serviceName + '.cloudapp.net:31415   - management endpoint (if SSL is not configured)');
-						console.log('  https://windows.azure.com - Windows Azure management portal (billing, accounts etc.)');
-						console.log();
-						console.log('Visit https://github.com/tjanczuk/git-azure for walkthroughs on setting up SSL, support for multiple apps, and more.'.blue);
+						config.ip = response.InputEndpointList.InputEndpoint[0].Vip;
 
 						clearInterval(adsInterval);
 						clearInterval(waitInterval);
 
-						captureEndTime();
-
-						process.exit(0);						
+						storeConfigInGit();
 					}
 					else {
 						setTimeout(waitForDeployment, 10000);
