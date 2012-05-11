@@ -931,6 +931,19 @@ exports.action = function (cmd) {
 				missing.push('--' + item);
 		});
 
+		if (missing.length > 0) {
+			console.error('The following required parameters must be specified:\n')
+			missing.forEach(console.error)
+			console.error('\nYou can specify parameters either as command line options, e.g.\n')
+			console.error('    git azure init --subscription 342d6bc9-21b7-427d-a31c-04956f221bd2\n')
+			console.error("or by using the 'azure' section of Git config, e.g.\n")
+			console.error('    git config azure.subscription 342d6bc9-21b7-427d-a31c-04956f221bd2')
+			if (!config.managementCertificate && !config.publishSettings) 
+				console.error('\nYou can download the *.publishSettings file for your Windows Azure subscription from '
+							  + 'https://windows.azure.com/download/publishprofile.aspx')
+			process.exit(1)
+		}
+
 		if (!config.blobContainerName) {
 			config.blobContainerName = config.serviceName;
 		}
@@ -944,19 +957,6 @@ exports.action = function (cmd) {
 		}
 		else if (typeof config.postReceive === 'string' && config.postReceive.substring(0, 1) !== '/') {
 			config.postReceive = '/' + config.postReceive;
-		}
-
-		if (missing.length > 0) {
-			console.error('The following required parameters must be specified:\n')
-			missing.forEach(console.error)
-			console.error('\nYou can specify parameters either as command line options, e.g.\n')
-			console.error('    git azure init --subscription 342d6bc9-21b7-427d-a31c-04956f221bd2\n')
-			console.error("or by using the 'azure' section of Git config, e.g.\n")
-			console.error('    git config azure.subscription 342d6bc9-21b7-427d-a31c-04956f221bd2')
-			if (!config.managementCertificate && !config.publishSettings) 
-				console.error('\nYou can download the *.publishSettings file for your Windows Azure subscription from '
-							  + 'https://windows.azure.com/download/publishprofile.aspx')
-			process.exit(1)
 		}
 
 		checkParametersValid()
