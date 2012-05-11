@@ -30,7 +30,7 @@ program.command('init')
     .option('-r, --remote <name>', '[optional] remote name to push git-azure runtime scaffolding to (defaults to origin)')
     .option('-t, --branch <name>', '[optional] branch name to push git-azure runtime scaffolding to (defaults to master)')
     .option('-c, --postReceive <url_path>', '[optional] obfuscated URL path for the post receive hook endpoint')
-    .option('-h, --noCache', '[optional] do not cache settings in Git config after successful completion')
+    .option('-o, --noCache', '[optional] do not cache settings in Git config after successful completion')
     .action(require('./commands/init.js').action);
 
 program.command('app <name>')
