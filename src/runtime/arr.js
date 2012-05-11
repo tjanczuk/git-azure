@@ -12,6 +12,7 @@ var config;
 var managementPassword;
 var server, secureServer, managementServer, postReceiveServer;
 var recycleInProgress;
+var recycleStartTime;
 
 if (!fs.existsSync) {
 	// polyfill node v0.7 fs.existsSync with node v0.6 path.existsSync
@@ -708,6 +709,7 @@ function syncRepo(callback) {
 function recycleService() {
 
 	recycleInProgress = true;
+	recycleStartTime = new Date();
 
 	// terminate existing child processes
 	killChildProcesses(function (err) {
@@ -734,7 +736,8 @@ function recycleService() {
 function isSystemInMaintenance(req, res) {
 	if (recycleInProgress) {
 		res.writeHead(503, { 'Content-Type': 'text/plain' });
-		res.end('The system is updating, please try again in a moment.');
+		var duration = new Date() - recycleStartTime;
+		res.end('The system is updating, please try again in a moment.\nElapsed time: ' + (duration / 1000) + ' seconds.');
 	}
 
 	return recycleInProgress;
