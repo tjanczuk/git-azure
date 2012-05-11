@@ -46,7 +46,7 @@ program.command('app <name>')
 
 program.command('blob')
     .description('Manipulate data in Azure Blob Storage.'.cyan)
-    .option('-p, --put <name> [data]', 'add or override data in blob storage')
+    .option('-p, --put <name>', 'add or override data in blob storage')
     .option('-g, --get <name>', 'get data from blob storage')
     .option('-d, --delete <name>', 'delete data from blob storage')
     .option('-l, --list', 'list blobs in blob storage')
