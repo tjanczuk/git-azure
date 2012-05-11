@@ -935,9 +935,9 @@ exports.action = function (cmd) {
 			console.error('The following required parameters must be specified:\n')
 			missing.forEach(console.error)
 			console.error('\nYou can specify parameters either as command line options, e.g.\n')
-			console.error('    git azure init --publishSettings ~\\Downloads\\tjanczuk.publishSettings\n')
+			console.error('    git azure init --publishSettings ~/Downloads/tjanczuk.publishSettings\n')
 			console.error("or by using the 'azure' section of Git config, e.g.\n")
-			console.error('    git config azure.publishSettings ~\\Downloads\\tjanczuk.publishSettings')
+			console.error('    git config azure.publishSettings ~/Downloads/tjanczuk.publishSettings')
 			if (!config.managementCertificate && !config.publishSettings) 
 				console.error('\nYou can download the *.publishSettings file for your Windows Azure subscription from '
 							  + 'https://windows.azure.com/download/publishprofile.aspx')
