@@ -33,7 +33,7 @@ git config azure.password <password>
 
 (The username and password are at present used to set up RDP access; going forward they will be used for Basic Auth to a mini management portal as well as SSH access to the box; Please note RDP access to Azure VMs from MacOS does not work today due to a known issue with Azure certificates).
 
-9. Start the initialization process:
+Finally start the initialization process:
 
 ```
 git azure init --serviceName <your_service_name>
@@ -98,8 +98,9 @@ Configure the post-receive hook in GitHub: go to the administration section of t
 
 Adding a first application is very easy as you don't need to think about configuring routing information. Basically all HTTP/WS requests will be routed to the application if only one exists in the system, regardless what the hostname of the HTTP/WS requests  is. 
 
-1. Go to http://your_service_name.cloudapp.net and show the respone indicating no applications are configured. 
-2. Create ```atest\apps\hello``` directory and save the following ```server.js``` file in there:
+Go to http://your_service_name.cloudapp.net and show the respone indicating no applications are configured. 
+
+Create ```atest\apps\hello``` directory and save the following ```server.js``` file in there:
 
 ```
 require('http').createServer(function (req, res) {
@@ -108,7 +109,7 @@ require('http').createServer(function (req, res) {
 }).listen(process.env.PORT || 8000);
 ```
 
-3. Then push it to GitHub:
+Then push it to GitHub:
 
 ```
 git add .
@@ -116,7 +117,7 @@ git commit -m "first application"
 git push
 ```
 
-4. Go to http://your_service_name.cloudapp.net again; you may need to refresh a few times as the update process typically takes 6-10 seconds; At the end you should see the 'Hello, world' of your first application
+Go to http://your_service_name.cloudapp.net again; you may need to refresh a few times as the update process typically takes 6-10 seconds; At the end you should see the 'Hello, world' of your first application
 
 ## Second application - introduction of routing
 
@@ -126,7 +127,7 @@ When adding a second application, one needs to consider which requests are going
 
 Configuration that does not match this convention can be refined with entries in the package.json file of each app (including support for multiple domain names with different SSL certificates), which is not covered in this demo. 
 
-2. Create ```atest\apps\foobar.com``` directory and save the following ```server.js``` file in there:
+Create ```atest\apps\foobar.com``` directory and save the following ```server.js``` file in there:
 
 ```
 require('http').createServer(function (req, res) {
@@ -137,7 +138,7 @@ require('http').createServer(function (req, res) {
 
 (Note the ```foobar.com``` directory name that needs to map to hostnames of the incoming HTTP requests). 
 
-3. Then push it to GitHub:
+Then push it to GitHub:
 
 ```
 git add .
@@ -145,19 +146,19 @@ git commit -m "first application"
 git push
 ```
 
-4. Add an entry to the ```/etc/hosts``` file to map the ```foobar.com``` domain name to the IP address of the Windows Azure service that was provided to you during the one-time intialization. First call
+Next, add an entry to the ```/etc/hosts``` file to map the ```foobar.com``` domain name to the IP address of the Windows Azure service that was provided to you during the one-time intialization. First call
 
 ```
 git config --get azure.ip
 ```
 
-Which will give you the IP address, say 65.52.238.34. Next, edit the ```/etc/hosts``` file with something like ```sudo nano /etc/hosts``` and enter the new host line:
+which will give you the IP address, say 65.52.238.34. Next, edit the ```/etc/hosts``` file with something like ```sudo nano /etc/hosts``` and enter the new host line:
 
 ```
 65.52.238.34 foobar.com
 ```
 
-4. Go to ```http://foobar.com```. You should see the 'SECOND APPLICATION' show up.
+Last, go to ```http://foobar.com```. You should see the 'SECOND APPLICATION' show up.
 
 Note: in production, instead of adding A records to ```/etc/hosts``` or to their DNS registry, one would add a CNAME record redirecting the custom domain name to your_service_name.cloudapp.net. 
 
@@ -169,7 +170,7 @@ Take a look at the node.js application at https://github.com/tjanczuk/dante. It 
 
 In this step we will add the application as a Git submodule to the ```atest``` repository. 
 
-1. Go the root of the ```atest``` repo; from there:
+First, go the root of the ```atest``` repo; from there:
 
 ```
 git submodule add git@github.com:tjanczuk/dante.git apps/dante.com
@@ -178,10 +179,10 @@ git commit -m "dante application"
 git push
 ```
 
-2. Similarly to the second app, add an entry to the ```/etc/hosts``` file to map the ```dante.com``` domain name to the IP address of the Windows Azure service, e.g.:
+Similarly to the second app, add an entry to the ```/etc/hosts``` file to map the ```dante.com``` domain name to the IP address of the Windows Azure service, e.g.:
 
 ```
 65.52.238.34 foobar.com
 ```
 
-3. Hit ```http://dante.com``` in a browser and enjoy Divine Comedy. 
+Last, hit ```http://dante.com``` in a browser and enjoy Divine Comedy streamed to you over WebSockets.
