@@ -720,6 +720,8 @@ exports.action = function (cmd) {
 		else {
 			// pin the .git-azure runtime version to match the CLI version
 
+			var gitAzure = path.resolve(config.git.projectRoot, gitAzureDir);
+
 			gitOrDie(['checkout', 'v' + config.version],
 				path.resolve(config.git.projectRoot, gitAzureDir),
 				'OK: created scaffolding of git-azure runtime as a submodule at ' + gitAzure,
@@ -729,7 +731,7 @@ exports.action = function (cmd) {
 	}
 
 	function ensureGitAzureSubmodule() {
-		var gitAzure = path.resolve(config.git.projectRoot, gitAzureDir)
+		var gitAzure = path.resolve(config.git.projectRoot, gitAzureDir);
 		if (fs.existsSync(gitAzure)) {
 			console.log(('OK: detected existing ' + gitAzure + ' directory, skipping scaffolding.').green);
 			ensureStorageAccount(true);
