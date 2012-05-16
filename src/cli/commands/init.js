@@ -81,15 +81,16 @@ exports.action = function (cmd) {
 				remote: config.remote,
 				branch: config.branch,
 				postReceive: config.postReceive,
-				postReceiveHttp: 'http://' + config.serviceName + '.coudapp.net:31417' + config.postReceive,
+				postReceiveHttp: 'http://' + config.serviceName + '.cloudapp.net:31417' + config.postReceive,
 				ip: config.ip,
 				cname: config.serviceName + '.cloudapp.net',
-				appHttp: 'http://' + config.serviceName + '.coudapp.net',
-				appHttps: 'https://' + config.serviceName + '.coudapp.net',
+				appHttp: 'http://' + config.serviceName + '.cloudapp.net',
+				appHttps: 'https://' + config.serviceName + '.cloudapp.net',
 				appWs: 'ws://' + config.serviceName + '.cloudapp.net',
 				appWss: 'wss://' + config.serviceName + '.cloudapp.net',
 				managementHttp: 'http://' + config.serviceName + '.cloudapp.net:31415',
-				managementHttps: 'https://' + config.serviceName + '.cloudapp.net:31415'
+				managementHttps: 'https://' + config.serviceName + '.cloudapp.net:31415',
+				gitazureversion: config.version
 			};
 
 			var settings = Object.getOwnPropertyNames(data);
@@ -694,8 +695,8 @@ exports.action = function (cmd) {
 		});
 	}
 
-	function gitOrDie(args, successMessage, dieMessage, callback) {
-		common.git(args, config.git.projectRoot, function (err, result) {
+	function gitOrDie(args, dir, successMessage, dieMessage, callback) {
+		common.git(args, dir, function (err, result) {
 			if (err) {
 				console.error(dieMessage);
 				console.error(err.msg);
@@ -708,6 +709,23 @@ exports.action = function (cmd) {
 			if (callback)
 				callback(err, result);
 		})
+	}
+
+	function pinRuntimeVersionIfReleased(callback) {
+		if (config.version.indexOf('-pre') > -1) {
+			// pre-release version, leave the .git-azure runtime synced to the HEAD of the repo
+
+			callback();
+		}
+		else {
+			// pin the .git-azure runtime version to match the CLI version
+
+			gitOrDie(['checkout', config.version],
+				path.resolve(config.git.projectRoot, gitAzureDir),
+				'OK: created scaffolding of git-azure runtime as a submodule at ' + gitAzure,
+				'Unable to create scaffolding of the git-azure runtime as a Git submodule at ' + gitAzure + ':',
+				callback);
+		}
 	}
 
 	function ensureGitAzureSubmodule() {
@@ -723,13 +741,19 @@ exports.action = function (cmd) {
 
 				async.apply(gitOrDie,
 					['submodule', 'add', gitAzureRepo, gitAzureDir],
+					config.git.projectRoot,
 					'OK: created scaffolding of git-azure runtime as a submodule at ' + gitAzure,
 					'Unable to create scaffolding of the git-azure runtime as a Git submodule at ' + gitAzure + ':'),
+
+				// cd .git-azure && git checkout <CLI_VERSION_NUMBER> && cd ..
+
+				async.apply(pinRuntimeVersionIfReleased),
 
 				// git add .
 
 				async.apply(gitOrDie,
 					['add', '.'],
+					config.git.projectRoot,
 					'OK: added scaffolding changes to Git index.',
 					'Unable to add git-azure scaffolding changes to Git index:'),
 
@@ -737,6 +761,7 @@ exports.action = function (cmd) {
 
 				async.apply(gitOrDie,
 					['commit', '-m', 'git-azure service runtime'],
+					config.git.projectRoot,
 					'OK: commited scaffolding changes.',
 					'Unable to commit git-azure scaffolding changes:'),
 
@@ -744,6 +769,7 @@ exports.action = function (cmd) {
 
 				async.apply(gitOrDie,
 					['push', '-u', config.remote, config.branch],
+					config.git.projectRoot,
 					'OK: pushed scaffolding changes to ' + config.remote + '/' + config.branch + '.',
 					'Unable to push git-azure scaffolding changes to ' + config.remote + '/' + config.branch +'.\n'
 					+ 'WARNING: changes have already been commited locally; please push them manually to your remote, '
@@ -960,7 +986,8 @@ exports.action = function (cmd) {
 			'Windows Azure service settings' : [ 'serviceName', 'subscription', 'publishSettings', 'serviceLocation', 'instances' ],
 			'Windows Azure storage settings' : [ 'storageAccountName', 'blobContainerName' ],
 			'Windows Azure RDP and Management settings' : [ 'username', 'password' ],
-			'Git settings' : [ 'remote_url', 'branch' ]
+			'Git settings' : [ 'remote_url', 'branch' ],
+			'Git-azure settings': [ 'version' ]
 		};
 
 		console.log('Running with the following configuration:');
@@ -1042,6 +1069,10 @@ exports.action = function (cmd) {
 		// override Git configuration with parameters passed to the command
 
 		common.merge(cmd, config, common.gitAzureConfigNames)
+
+		// determine CLI version from package.json
+
+		config.version = require(path.resolve(__dirname, '../../../package.json')).version;
 
 		common.getGitContext(function (err, context) {
 			if (err) {
