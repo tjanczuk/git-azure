@@ -96,7 +96,7 @@ Configure the post-receive hook in GitHub: go to the administration section of t
 
 ## First application
 
-Adding a first application is very easy as you don't need to think about configuring routing information. Basically all HTTP/WS requests will be routed to the application if only one exists in the system, regardless what the hostname of the HTTP/WS requests  is. 
+Adding a first application is very easy as you don't need to think about configuring routing information. Basically all HTTP/WS requests will be routed to the application if only one exists in the system, regardless what the hostname of the HTTP/WS requests is. 
 
 Go to http://your_service_name.cloudapp.net and show the respone indicating no applications are configured. 
 
@@ -166,7 +166,7 @@ Note: in production, instead of adding A records to ```/etc/hosts``` or to their
 
 This application shows two extra features of git-azure: ability to compose applications that reside in their own repositories, as well as support for WebSockets. 
 
-Take a look at the node.js application at https://github.com/tjanczuk/dante. It runs a small web server, serves an index.html page to the browser in response to any HTTP requests. The page in turn makes a WebSocket connection back to the server. When the server gets an upgrade request, it starts streaming Dante's Divine Comedy, Cante 1, back to the client, one stanza at a time. Try running it as a standalone node.js app to get a sense of what it does. 
+Take a look at the node.js application at https://github.com/tjanczuk/dante. It runs a small web server, serves an index.html page to the browser in response to any HTTP requests. The page in turn makes a WebSocket connection back to the server. When the server gets an upgrade request, it starts streaming Dante's Divine Comedy, Canto 1, back to the client, one stanza at a time. Try running it as a standalone node.js app to get a sense of what it does. 
 
 In this step we will add the application as a Git submodule to the ```atest``` repository. 
 
