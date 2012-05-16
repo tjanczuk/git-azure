@@ -720,7 +720,7 @@ exports.action = function (cmd) {
 		else {
 			// pin the .git-azure runtime version to match the CLI version
 
-			gitOrDie(['checkout', config.version],
+			gitOrDie(['checkout', 'v' + config.version],
 				path.resolve(config.git.projectRoot, gitAzureDir),
 				'OK: created scaffolding of git-azure runtime as a submodule at ' + gitAzure,
 				'Unable to create scaffolding of the git-azure runtime as a Git submodule at ' + gitAzure + ':',
