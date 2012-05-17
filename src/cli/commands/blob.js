@@ -21,7 +21,7 @@ exports.action = function (cmd) {
 		}
 		else {
 			var fileName = path.resolve(process.cwd(), config.file);
-			blob.createBlockBlobFromFile(config.blobContainerName, config.put, config.file, onError);
+			blob.createBlockBlobFromFile(config.blobContainerName, config.put, fileName, onError);
 		}
 	}
 
@@ -107,7 +107,7 @@ exports.action = function (cmd) {
 
 	common.getAzureConfigFromGit('azure.', ['storageAccountName', 'storageAccountKey', 'blobContainerName'], function (err, gitConfig) {
 		if (err) {
-			console.error(err.toString());
+			console.error(err);
 			process.exit(1);
 		}
 

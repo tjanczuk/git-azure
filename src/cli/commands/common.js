@@ -190,18 +190,18 @@ exports.getAzureConfigFromGit = function (prefix, properties, callback) {
 	if (!Array.isArray(properties))
 		throw new Error('properties must be an array of strings');
 
-	var result = {}
+	var result = {};
 	var getNextSetting = function (i) {
 		exports.git(['config','--get', (prefix || '') + properties[i]], null, function (err, stdout) {
 			if (!err && typeof stdout === 'string' && stdout.length > 0)
-				result[properties[i]] = stdout.replace('\n','')
+				result[properties[i]] = stdout.replace('\n','');
 			if (++i === properties.length) 
-				callback(err, result)
+				callback(null, result);
 			else
-				getNextSetting(i)
-		})
+				getNextSetting(i);
+		});
 	}
-	getNextSetting(0)
+	getNextSetting(0);
 }
 
 exports.merge = function (source, dest, filter) {
