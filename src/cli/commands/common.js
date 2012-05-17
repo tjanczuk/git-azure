@@ -11,6 +11,8 @@ if (!fs.existsSync) {
 
 exports.isWindows = typeof process.env.OS !== 'undefined';
 
+var gitAzureDir = '.git-azure';
+
 exports.startWait = function () {
 	var waitSymbols = [ '\\', '|', '/', '-' ];
 	var waitSymbolIndex = 0;
@@ -261,4 +263,51 @@ exports.getGitContext = function (callback) {
 
 	if (callback)
 		callback(null, result)
+}
+
+exports.generateX509 = function (options, callback) {
+	var tmpDir = path.resolve(options.config.git.projectRoot, gitAzureDir, 'src/bootstrap');
+	var keyFile = path.resolve(tmpDir, 'key.pem.openssl');
+	var csrFile = path.resolve(tmpDir, 'csr.pem.openssl');
+	var certFile = path.resolve(tmpDir, 'cert.pem.openssl');
+
+	var cleanupFiles = function () {
+		[keyFile, csrFile, certFile].forEach(function (item) {
+			try {
+				fs.unlinkSync(item);
+			}
+			catch (e) {
+				// empty
+			}
+		});
+	}
+
+	// openssl genrsa -out key.pem.openssl 1024
+	// openssl req -new -key key.pem.openssl -out csr.pem.openssl -subj /CN=<options.cn>
+	// openssl x509 -req -in csr.pem.openssl -signkey key.pem.openssl -out cert.pem.openssl
+
+	var command = 
+		'openssl genrsa -out ' + keyFile + ' 1024\n' +
+		'openssl req -new -key ' + keyFile + ' -out ' + csrFile + ' -subj /CN=' + options.cn + '\n' +
+		'openssl x509 -req -in ' + csrFile + ' -signkey ' + keyFile + ' -out ' + certFile;
+
+	cleanupFiles();
+
+	require('child_process').exec(command, function (err, stdout, stderr) {
+		if (err) {
+			console.error('Unable to generate a self-signed X.509 certificate:');
+			console.error(err);
+			cleanupFiles();
+			process.exit(1);
+		}
+
+		try {
+			fs.unlinkSync(csrFile);
+		}
+		catch (e) {
+			// empty
+		}
+
+		callback(null, { keyFile: keyFile, certFile: certFile });
+	});
 }

@@ -10,6 +10,19 @@ exports.action = function (cmd) {
 
 	var config;
 
+	process.on('exit', function () {
+		if (config && config.generatedX509) {
+			[config.certFile, config.keyFile].forEach(function (item) {
+				try {
+					fs.unlinkSync(item);
+				}
+				catch (e) {
+					// empty
+				}
+			});
+		}
+	});
+
 	function save() {
 		fs.writeFileSync(config.configFile, JSON.stringify(config.packageJson, null, 2));
 		console.log('Configuration successful. You must commit and push for the changes to take effect.');
@@ -78,6 +91,35 @@ exports.action = function (cmd) {
 			});
 	}
 
+	function generateX509() {
+		if (config.generateX509) {
+			var options = { config: config };
+			if (config.generateX509 === true) {
+				options.cn = config.host == '*' ? config.setup : config.host;
+			}
+			else {
+				options.cn = config.generateX509;
+			}
+			
+			common.generateX509(options, function (err, result) {
+				if (err) {
+					console.error('Unable to generate self-signed X.509 certificate:');
+					console.error(err);
+					process.exit(1);
+				}
+
+				config.certFile = result.certFile;
+				config.keyFile = result.keyFile;
+				config.generatedX509 = true;
+
+				uploadKey();
+			})
+		}
+		else {
+			uploadKey();
+		}
+	}
+
 	function scaffoldContent() {
 		if (!config.gitUrl) {
 			var entryFile = path.resolve(config.appDir, config.packageJson.azure.script);
@@ -95,7 +137,7 @@ exports.action = function (cmd) {
 			}
 		}
 
-		uploadKey();
+		generateX509();
 	}
 
 	function loadPackageJson() {
@@ -257,7 +299,7 @@ exports.action = function (cmd) {
 		else if (!existsSync(path.resolve(config.appsDir, app, appConfig.azure.script))) {
 			errors.push('- app ' + app + ' specifies an entry script name that does not exist: ' + appConfig.azure.script);
 		}
-		
+
 		if (!appConfig.azure.hosts || Object.getOwnPropertyNames(appConfig.azure.hosts).length === 0) {
 			warnings.push('- app ' + app + ' does not have any host names associated with it and is therefore disabled');
 		}
@@ -365,7 +407,11 @@ exports.action = function (cmd) {
 			missing.push('- when --key or --keyFile is specified, one of --cert of --certFile must also be specified');
 		}
 
-		if (config.certFile || config.keyFile) {
+		if (config.generateX509 && (config.certFile || config.keyFile || config.cert || config.key)) {
+			missing.push('--generateX509 is mutually exlusive with either of --certFile, --keyFile, --cert, or -key');
+		}
+
+		if (config.certFile || config.keyFile || config.generateX509) {
 			['storageAccountName', 'storageAccountKey', 'blobContainerName'].forEach(function (item) {
 				if (!config[item])
 					missing.push('--' + item);
@@ -421,8 +467,8 @@ exports.action = function (cmd) {
 
 		config = gitConfig;
 
-		common.merge(cmd, config, ['show', 'gitUrl', 'ssl', 'cert', 'certFile', 'key', 'keyFile', 'entry', 'delete', 'host', 'setup', 
-			'storageAccountName', 'storageAccountKey', 'blobContainerName']);
+		common.merge(cmd, config, ['show', 'gitUrl', 'ssl', 'cert', 'certFile', 'key', 'keyFile', 'generateX509',
+			'entry', 'delete', 'host', 'setup', 'storageAccountName', 'storageAccountKey', 'blobContainerName']);
 
 		common.getGitContext(function (err, context) {
 			if (err) {

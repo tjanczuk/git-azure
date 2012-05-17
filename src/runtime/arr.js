@@ -41,8 +41,8 @@ function determineConfiguration() {
 		postReceivePort: 31417,
 		postReceive: '/postReceive',
 		managementUsername: 'admin',
-		// sslCertificateName: 'serverCertificate',
-		// sslKeyName: 'serverKey',
+		sslCertificateName: 'master.certificate.pem',
+		sslKeyName: 'master.key.pem',
 		startPort: 8000,
 		endPort: 9000
 	};
