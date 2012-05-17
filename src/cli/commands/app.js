@@ -249,17 +249,17 @@ exports.action = function (cmd) {
 					return false;
 				}
 			});
+		}
 
-			if (!appConfig.azure.script) {
-				errors.push('- app ' + app + ' does not specify an entry script and neither server.js or app.js exist');
-			}
-			else if (!existsSync(path.resolve(config.appsDir, app, appConfig.azure.script))) {
-				errors.push('- app ' + app + ' specifies an entry script name that does not exist: ' + appConfig.azure.script);
-			}
-
-			if (!appConfig.azure.hosts) {
-				warnings.push('- app ' + app + ' does not have any host names associated with it and is therefore disabled');
-			}
+		if (!appConfig.azure.script) {
+			errors.push('- app ' + app + ' does not specify an entry script and neither server.js or app.js exist');
+		}
+		else if (!existsSync(path.resolve(config.appsDir, app, appConfig.azure.script))) {
+			errors.push('- app ' + app + ' specifies an entry script name that does not exist: ' + appConfig.azure.script);
+		}
+		
+		if (!appConfig.azure.hosts || Object.getOwnPropertyNames(appConfig.azure.hosts).length === 0) {
+			warnings.push('- app ' + app + ' does not have any host names associated with it and is therefore disabled');
 		}
 
 		return appConfig;
