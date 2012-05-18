@@ -596,7 +596,7 @@ function onRouteUpgradeRequest(req, socket, head, proxy) {
 }
 
 function onProxyingError(err, req, res) {
-	console.log('Error routing ' + getDestinationDescription(req.context));
+	console.log('Error routing ' + getDestinationDescription(req.context) + ': ' + req.url);
 }
 
 function setupRouter() {
