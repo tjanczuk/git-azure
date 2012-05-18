@@ -28,6 +28,19 @@ exports.action = function (cmd) {
 	var waitInterval, adsInterval;
 	var startTime, endTime;
 
+	function removeTemporaryFiles() {
+		[config.certFile, config.keyFile].forEach(function (item) {
+			try {
+				fs.unlinkSync(item);
+			}
+			catch (e) {
+				// empty
+			}
+		});
+	}
+
+	process.on('exit', removeTemporaryFiles);
+
 	function captureEndTime() {
 		endTime = new Date();
 		console.log(('Finished at ' + new Date()).grey);
@@ -415,6 +428,58 @@ exports.action = function (cmd) {
 		createHostedService();
 	}
 
+	function ensureSslCertificateUploaded() {
+
+		var options = { 
+			config: config,
+			cn: config.serviceName + '.cloudapp.net'
+		};
+
+		common.generateX509(options, function (err, result) {
+			if (err) {
+				console.error('Unable to generate X.509 certificate for SSL:');
+				console.error(err);
+				process.exit(1);
+			}
+
+			console.log(('OK: generated self-signed, master X.509 certificate for CN=' + options.cn).green);
+
+			config.keyFile = result.keyFile;
+			config.certFile = result.certFile;
+			config.generatedX509 = true;
+
+			var blob = azure.createBlobService(config.storageAccountName, config.storageAccountKey);
+
+			blob.createBlockBlobFromFile(config.blobContainerName, 'master.key.pem', config.keyFile, function (err) {
+				if (err) {
+					console.error('Unable to upload master SSL key to Windows Azure blob master.key.pem' 
+						+ ' in container ' + config.blobContainerName + ' under storage account '
+						+ config.storageAccountName + ':');
+					console.error(err.toString());
+					process.exit(1); // temp files are removed on process.on('exit')
+				}
+
+				console.log(('OK: uploaded master SSL key to Windows Azure Blob Storage').green);
+
+				blob.createBlockBlobFromFile(config.blobContainerName, 'master.certificate.pem', config.certFile, function (err) {
+					if (err) {
+						console.error('Unable to upload master SSL certificate to Windows Azure blob master.certificate.pem' 
+							+ ' in container ' + config.blobContainerName + ' under storage account '
+							+ config.storageAccountName + ':');
+						console.error(err.toString());
+						process.exit(1); // temp files are removed on process.on('exit')
+					}
+
+					console.log(('OK: uploaded master SSL certificate to Windows Azure Blob Storage').green);
+
+					removeTemporaryFiles();
+
+					generateServiceConfiguration();
+				});
+			});
+		});
+	}
+
 	function ensureCspkgUploaded() {
 		var blob = azure.createBlobService(config.storageAccountName, config.storageAccountKey);
 
@@ -460,7 +525,7 @@ exports.action = function (cmd) {
 					console.log(('OK: bootstrap package ' + cspkgPath + ' uploaded to blob ' + bootstrapBlobName + ' in container '
 						+ config.blobContainerName + ' under storage account ' + config.storageAccountName + '.').green);
 
-					generateServiceConfiguration();
+					ensureSslCertificateUploaded();
 				});
 			});
 		});

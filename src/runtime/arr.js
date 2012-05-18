@@ -236,7 +236,7 @@ function validateSslConfiguration() {
 
 	for (var host in config.routingTable) {
 		var route = config.routingTable[host].route;
-		if (route.ssl !== 'rejected') {
+		if (route.ssl !== 'disallowed') {
 			if (typeof route.sslCertificateName === 'string' && typeof route.sslKeyName !== 'string'
 				|| typeof route.sslCertificateName !== 'string' && typeof route.sslKeyName === 'string') {
 					console.log('Error in SSL configuration of host ' + host + ' of application application ' + config.routingTable[host].app.name + '.' 
@@ -321,7 +321,7 @@ function obtainCertificates() {
 	}
 
 	var obtainOne = function(spec) {
-		if (spec.ssl === 'rejected') {
+		if (spec.ssl === 'disallowed') {
 			return;
 		}
 
@@ -555,8 +555,8 @@ function ensureProcess(context) {
 }
 
 function ensureSecurityConstraints(context) {
-	if (context.routingEntry.route.ssl === 'reject' && context.proxy.secureServer
-		|| context.routingEntry.route.ssl === 'require' && !context.proxy.secureServer) {
+	if (context.routingEntry.route.ssl === 'disallowed' && context.proxy.secureServer
+		|| context.routingEntry.route.ssl === 'required' && !context.proxy.secureServer) {
 		onProxyError(context, 404, "Request security does not match security configuration of the application");
 	}
 	else {
@@ -620,7 +620,7 @@ function setupRouter() {
 		secureServer.on('upgrade', function (req, res, head) { onRouteUpgradeRequest(req, res, head, secureServer.proxy); });
 		for (var hostName in config.routingTable) {
 			var host = config.routingTable[hostName];
-			if (host.sslCertificate && host.sslKey && host.ssl !== 'reject') {
+			if (host.sslCertificate && host.sslKey && host.ssl !== 'disallowed') {
 				console.log('Configuring SNI for host name ' + hostName);
 				secureServer.addContext(hostName, { cert: host.sslCertificate, key: host.sslKey });
 			}
