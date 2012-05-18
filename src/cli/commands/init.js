@@ -1091,7 +1091,7 @@ exports.action = function (cmd) {
 				missing.push('--' + item);
 		});
 
-		if (config.instances !== 1) {
+		if (config.instances != 1) {
 			missing.push('--instances must be set to 1 in the current version; multi-instance support is coming...');
 		}
 
