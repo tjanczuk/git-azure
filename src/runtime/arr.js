@@ -248,7 +248,7 @@ function validateSslConfiguration() {
 
 			if (typeof route.sslCertificateName === 'string') {
 				config.sslEnabled = true;
-				console.log('SSL credentials for SNI are configured for host name ' + host + ' of application ' + routingTable[host].app.name);
+				console.log('SSL credentials for SNI are configured for host name ' + host + ' of application ' + config.routingTable[host].app.name);
 			}
 		}
 	}
