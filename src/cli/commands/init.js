@@ -1091,6 +1091,10 @@ exports.action = function (cmd) {
 				missing.push('--' + item);
 		});
 
+		if (config.instances !== 1) {
+			missing.push('--instances must be set to 1 in the current version; multi-instance support is coming...');
+		}
+
 		if (missing.length > 0) {
 			console.error('The following required parameters must be specified:\n')
 			missing.forEach(console.error)
