@@ -613,6 +613,8 @@ function setupRouter() {
 	if (config.sslEnabled) {
 		// setup HTTPS/WSS proxy along with SNI information for individual apps
 
+		console.log('Setting up the HTTPS/WSS router...');
+
 		var options = { https: { cert: config.sslCertificate, key: config.sslKey } };
 		secureServer = httpProxy.createServer(options, onRouteRequest);
 		secureServer.proxy.secure = true;
@@ -620,9 +622,9 @@ function setupRouter() {
 		secureServer.on('upgrade', function (req, res, head) { onRouteUpgradeRequest(req, res, head, secureServer.proxy); });
 		for (var hostName in config.routingTable) {
 			var host = config.routingTable[hostName];
-			if (host.sslCertificate && host.sslKey && host.ssl !== 'disallowed') {
+			if (host.route.sslCertificate && host.route.sslKey && host.route.ssl !== 'disallowed') {
 				console.log('Configuring SNI for host name ' + hostName);
-				secureServer.addContext(hostName, { cert: host.sslCertificate, key: host.sslKey });
+				secureServer.addContext(hostName, { cert: host.route.sslCertificate, key: host.route.sslKey });
 			}
 		}
 		secureServer.listen(config.sslPort);
