@@ -403,7 +403,7 @@ function routeToProcess(context) {
 
 	var options = {
 		port: context.routingEntry.to.port,
-		host: context.routingEntry.host
+		host: context.routingEntry.to.host
 	};
 
 	if (context.socket) {
