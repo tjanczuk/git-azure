@@ -611,7 +611,10 @@ function onProxyingError(err, req, res) {
 
 	if (req.method !== 'HEAD') {
 		try {
-
+			res.writeHead(500, {'Content-Type': 'text/plain'});
+			res.write('There was an error routing the request to the application process:\n');
+			res.write(err.toString());
+			res.end();
 		}
 		catch (e) {
 			try {
