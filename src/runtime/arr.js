@@ -192,22 +192,21 @@ function determineConfiguration() {
 function calculateRoutingTable() {
 	config.routingTable = {};
 	for (var app in config.apps) {
-		if (typeof config.apps[app].hosts !== 'object')
-			throw new Error('The hosts property of the configuration element of the ' + app + ' application must be a JSON object.');
+		if (typeof config.apps[app].hosts === 'object') {
+			for (var host in config.apps[app].hosts) {
 
-		for (var host in config.apps[app].hosts) {
+				if (typeof config.apps[app].hosts[host] !== 'object')
+					throw new Error('The host entry ' + host + ' of application ' + app + ' must be a JSON object.');
 
-			if (typeof config.apps[app].hosts[host] !== 'object')
-				throw new Error('The host entry ' + host + ' of application ' + app + ' must be a JSON object.');
+				if (config.routingTable[host])
+					throw new Error('The host name ' + host + ' is currently mapped to two applications: ' + app + ' and '
+						+ config.routingTable[host].app.name + '. Each host name must be mapped to one application only.');
 
-			if (config.routingTable[host])
-				throw new Error('The host name ' + host + ' is currently mapped to two applications: ' + app + ' and '
-					+ config.routingTable[host].app.name + '. Each host name must be mapped to one application only.');
-
-			config.routingTable[host] = {
-				app: config.apps[app],
-				route: config.apps[app].hosts[host]
-			};
+				config.routingTable[host] = {
+					app: config.apps[app],
+					route: config.apps[app].hosts[host]
+				};
+			}
 		}
 	}
 
@@ -564,8 +563,8 @@ function ensureProcess(context) {
 }
 
 function ensureSecurityConstraints(context) {
-	if (context.routingEntry.route.ssl === 'disallowed' && context.proxy.secureServer
-		|| context.routingEntry.route.ssl === 'required' && !context.proxy.secureServer) {
+	if (context.routingEntry.route.ssl === 'disallowed' && context.proxy.secure
+		|| context.routingEntry.route.ssl === 'required' && !context.proxy.secure) {
 		onProxyError(context, 404, "Request security does not match security configuration of the application");
 	}
 	else {
