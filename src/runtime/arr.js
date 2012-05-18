@@ -397,13 +397,22 @@ function getDestinationDescription(context) {
 
 function routeToProcess(context) {
 	console.log('Routing ' + getDestinationDescription(context));
+
+	// creating a clone of the routing entry is necessary to work around 
+	// https://github.com/nodejitsu/node-http-proxy/issues/248
+
+	var options = {
+		port: context.routingEntry.to.port,
+		host: context.routingEntry.host
+	};
+
 	if (context.socket) {
 		context.socket.resume();
-		context.proxy.proxyWebSocketRequest(context.req, context.socket, context.head, context.routingEntry.to);	
+		context.proxy.proxyWebSocketRequest(context.req, context.socket, context.head, options);	
 	}
 	else {
 		context.req.resume();
-		context.proxy.proxyRequest(context.req, context.res, context.routingEntry.to);
+		context.proxy.proxyRequest(context.req, context.res, options);
 	}
 }
 
@@ -597,6 +606,22 @@ function onRouteUpgradeRequest(req, socket, head, proxy) {
 
 function onProxyingError(err, req, res) {
 	console.log('Error routing ' + getDestinationDescription(req.context) + ': ' + req.url);
+
+	// attempt to send a polite response
+
+	if (req.method !== 'HEAD') {
+		try {
+
+		}
+		catch (e) {
+			try {
+				res.end();
+			}
+			catch (e1) {
+				// empty
+			}
+		}
+	}
 }
 
 function setupRouter() {
@@ -615,7 +640,13 @@ function setupRouter() {
 
 		console.log('Setting up the HTTPS/WSS router...');
 
-		var options = { https: { cert: config.sslCertificate, key: config.sslKey } };
+		var options = { 
+			https: { 
+				cert: config.sslCertificate, 
+				key: config.sslKey
+			} 
+		};
+
 		secureServer = httpProxy.createServer(options, onRouteRequest);
 		secureServer.proxy.secure = true;
 		secureServer.proxy.on('proxyError', onProxyingError);
