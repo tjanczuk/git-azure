@@ -225,11 +225,11 @@ function calculateRoutingTable() {
 
 	if (appCount === 1) {
 
-		// there is only one application, make it a "catch all" application for all traffic unless disablePathRouting is on
+		// there is only one application, make it a "catch all" application for all traffic unless pathRoutingDisabled is on
 
 		var oneApp = config.apps[oneAppName];
 
-		if (!app.disablePathRouting) {
+		if (!app.pathRoutingDisabled) {
 			config.fallbackRoute = {
 				app: oneApp,
 				route: {

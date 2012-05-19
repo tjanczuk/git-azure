@@ -30,10 +30,10 @@ exports.action = function (cmd) {
 
 	function configurePathRouting() {
 		if (config.disablePathRouting) {
-			config.packageJson.azure.disablePathRouting = true;
+			config.packageJson.azure.pathRoutingDisabled = true;
 		}
 		else if (config.enablePathRouting) {
-			delete config.packageJson.azure.disablePathRouting;
+			delete config.packageJson.azure.pathRoutingDisabled;
 		}
 
 		save();
