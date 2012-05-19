@@ -28,13 +28,24 @@ exports.action = function (cmd) {
 		console.log('Configuration successful. You must commit and push for the changes to take effect.');
 	}
 
+	function configurePathRouting() {
+		if (config.disablePathRouting) {
+			config.packageJson.azure.disablePathRouting = true;
+		}
+		else if (config.enablePathRouting) {
+			delete config.packageJson.azure.disablePathRouting;
+		}
+
+		save();
+	}
+
 	function configureSsl() {
 		if (config.key) {
 			config.packageJson.azure.hosts[config.host].sslKeyName = config.key;
 			config.packageJson.azure.hosts[config.host].sslCertificateName = config.cert;
 		}
 
-		save();
+		configurePathRouting();
 	}
 
 	function uploadCert() {
@@ -412,6 +423,10 @@ exports.action = function (cmd) {
 			});			
 		}
 
+		if (config.enablePathRouting && config.disablePathRouting) {
+			missing.push('--disablePathRouting and --enablePathRouting cannot be specified togeather');
+		}
+
 		if (config.setup) {
 			if (!config.host && config.setup.indexOf('.') > -1) {
 				config.host = config.setup;
@@ -465,7 +480,8 @@ exports.action = function (cmd) {
 		config = gitConfig;
 
 		common.merge(cmd, config, ['show', 'gitUrl', 'ssl', 'cert', 'certFile', 'key', 'keyFile', 'generateX509',
-			'entry', 'delete', 'host', 'setup', 'storageAccountName', 'storageAccountKey', 'blobContainerName']);
+			'disablePathRouting', 'enablePathRouting', 'entry', 'delete', 'host', 'setup', 'storageAccountName', 
+			'storageAccountKey', 'blobContainerName']);
 
 		common.getGitContext(function (err, context) {
 			if (err) {
