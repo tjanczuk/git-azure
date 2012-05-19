@@ -78,7 +78,7 @@ function determineConfiguration() {
 	if (fs.existsSync(packageJson)) {
 		var json;
 		try {
-			json = require(packageJson);
+			json = JSON.parse(fs.readFileSync(packageJson, 'utf8'));
 		}
 		catch (e) {
 			throw new Error('Unable to parse ' + packageJson);
@@ -139,7 +139,7 @@ function determineConfiguration() {
 		if (fs.existsSync(appPackageJson)) {
 			var json;
 			try {
-				json = require(appPackageJson);
+				json = JSON.parse(fs.readFileSync(appPackageJson, 'utf8'));
 			}
 			catch (e) {}
 
