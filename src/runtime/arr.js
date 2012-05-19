@@ -191,6 +191,8 @@ function determineConfiguration() {
 
 function calculateRoutingTable() {
 	config.routingTable = {};
+	config.pathRoutingTable = {};
+
 	for (var app in config.apps) {
 		if (typeof config.apps[app].hosts === 'object') {
 			for (var host in config.apps[app].hosts) {
@@ -208,13 +210,25 @@ function calculateRoutingTable() {
 				};
 			}
 		}
+
+		if (!config.apps[app].pathRoutingDisabled) {
+			// add a URL path based route
+
+			config.pathRoutingTable[app] = {
+				app: config.apps[app],
+				route: {
+					ssl: 'allowed'
+				}
+			}
+		}
 	}
 
 	config.fallbackRoute = config.routingTable['*'];
 
-	console.log('Computed the following routing table:');
+	console.log('Computed the following host routing table:');
 	console.log(config.routingTable);
-	console.log();
+	console.log('Computed the following URL path routing table:');
+	console.log(config.pathRoutingTable);
 
 	validateSslConfiguration();
 }
@@ -391,7 +405,7 @@ function onProxyError(context, status, error) {
 
 function getDestinationDescription(context) {
 	var requestType = (context.socket ? 'WS' : 'HTTP') + (context.proxy.secure ? 'S' : '');
-	return requestType + ' request to app ' + context.routingEntry.app.name + ' on port ' + context.routingEntry.to.port;	
+	return requestType + ' request to app ' + context.routingEntry.app.name + ' on port ' + context.routingEntry.app.to.port;	
 }
 
 function routeToProcess(context) {
@@ -401,8 +415,8 @@ function routeToProcess(context) {
 	// https://github.com/nodejitsu/node-http-proxy/issues/248
 
 	var options = {
-		port: context.routingEntry.to.port,
-		host: context.routingEntry.to.host
+		port: context.routingEntry.app.to.port,
+		host: context.routingEntry.app.to.host
 	};
 
 	if (context.socket) {
@@ -448,39 +462,39 @@ function getEnv(port) {
 }
 
 function waitForServer(routingEntry, attemptsLeft, delay) {
-	var client = net.connect(routingEntry.to.port, function () {
+	var client = net.connect(routingEntry.app.to.port, function () {
 		client.destroy();
 
-		for (var i in routingEntry.pendingRequests) {
-			routeToProcess(routingEntry.pendingRequests[i])
+		for (var i in routingEntry.app.pendingRequests) {
+			routeToProcess(routingEntry.app.pendingRequests[i])
 		}
 
-		delete routingEntry.pendingRequests;
+		delete routingEntry.app.pendingRequests;
 	});
 
 	client.on('error', function() {
 		client.destroy();
-		if (attemptsLeft === 0 || !routingEntry.process) {
-			for (var i in routingEntry.pendingRequests) {
-				var context = routingEntry.pendingRequests[i];
+		if (attemptsLeft === 0 || !routingEntry.app.process) {
+			for (var i in routingEntry.app.pendingRequests) {
+				var context = routingEntry.app.pendingRequests[i];
 				onProxyError(context, 500, 'The node.js process for application ' + routingEntry.app.name 
 					+ ' did not establish a listener in a timely manner or failed during startup.');
 			}
 
-			delete routingEntry.pendingRequests;
+			delete routingEntry.app.pendingRequests;
 
-			if (routingEntry.process) {
-				console.log('Terminating unresponsive node.js process with PID ' + routingEntry.process.pid);
-				delete processes[routingEntry.to.port];
+			if (routingEntry.app.process) {
+				console.log('Terminating unresponsive node.js process with PID ' + routingEntry.app.process.pid);
+				delete processes[routingEntry.app.to.port];
 				try { 
-					process.kill(routingEntry.process.pid); 
+					process.kill(routingEntry.app.process.pid); 
 				}
 				catch (e) {
 					// empty
 				}
 
-				delete routingEntry.process;
-				delete routingEntry.to;
+				delete routingEntry.app.process;
+				delete routingEntry.app.to;
 			}
 		} 
 		else { 
@@ -503,37 +517,37 @@ function createProcess(context) {
 		console.log('Starting application ' + context.routingEntry.app.name + ' with entry point ' + absolutePath);
 		
 		try { 
-			context.routingEntry.process = child_process.spawn(process.execPath, [ absolutePath ], { env: env }); 
+			context.routingEntry.app.process = child_process.spawn(process.execPath, [ absolutePath ], { env: env }); 
 		}
 		catch (e) {
 			// empty
 		}
 
-		if (!context.routingEntry.process 
-			|| (typeof context.routingEntry.process.exitCode === 'number' && context.routingEntry.process.exitCode !== 0)) {
+		if (!context.routingEntry.app.process 
+			|| (typeof context.routingEntry.app.process.exitCode === 'number' && context.routingEntry.app.process.exitCode !== 0)) {
 			console.log('Unable to start process: node.exe ' + absolutePath);
 			onProxyError(context, 500, 'Unable to start process: node.exe ' + absolutePath);
 		}
 		else {
-			processes[port] = context.routingEntry.process;
-			context.routingEntry.to = { host: '127.0.0.1', port: port };
-			var logger = function(data) { process.stdout.write('PID ' + context.routingEntry.process.pid + ':' + data); };
-			context.routingEntry.process.stdout.on('data', logger);
-			context.routingEntry.process.stderr.on('data', logger);
+			processes[port] = context.routingEntry.app.process;
+			context.routingEntry.app.to = { host: '127.0.0.1', port: port };
+			var logger = function(data) { process.stdout.write('PID ' + context.routingEntry.app.process.pid + ':' + data); };
+			context.routingEntry.app.process.stdout.on('data', logger);
+			context.routingEntry.app.process.stderr.on('data', logger);
 			var currentProcesses = processes;
-			context.routingEntry.process.on('exit', function (code, signal) {
+			context.routingEntry.app.process.on('exit', function (code, signal) {
 				if (currentProcesses === processes) {
 					// avoid race condition in he recycle mode
 
 					delete processes[port];
 				}
-				console.log('Child process exited. App: ' + context.routingEntry.app.name + ', Port: ' + port + ', PID: ' + context.routingEntry.process.pid 
+				console.log('Child process exited. App: ' + context.routingEntry.app.name + ', Port: ' + port + ', PID: ' + context.routingEntry.app.process.pid 
 					+ ', code: ' + code + ', signal: ' + signal);
 
 				// remove registration of the instance of the application that just exited
 
-				delete context.routingEntry.process;
-				delete context.routingEntry.to;
+				delete context.routingEntry.app.process;
+				delete context.routingEntry.app.to;
 			});
 
 			waitForServer(context.routingEntry, 20, 1000);
@@ -548,16 +562,16 @@ function ensureProcess(context) {
 	// 1.2. Else, queue up the context to be routed once the listener has been established
 	// 2. Else, provision a new instance
 
-	if (context.routingEntry.process) {
-		if (context.routingEntry.pendingRequests) {
-			context.routingEntry.pendingRequests.push(context);
+	if (context.routingEntry.app.process) {
+		if (context.routingEntry.app.pendingRequests) {
+			context.routingEntry.app.pendingRequests.push(context);
 		}
 		else {
 			routeToProcess(context);
 		}
 	}
 	else {
-		context.routingEntry.pendingRequests = [ context ];
+		context.routingEntry.app.pendingRequests = [ context ];
 		createProcess(context);
 	}
 }
@@ -572,10 +586,19 @@ function ensureSecurityConstraints(context) {
 	}
 }
 
+function routeByHost(context) {
+	return config.routingTable[context.host];
+}
+
+function routeByPath(context) {
+	var match = /\/([^\/\#\?]+)/.exec(context.req.url);
+	return match ? config.pathRoutingTable[match[1]] : undefined;
+}
+
 function loadApp(context) {
 	context.host = context.req.headers['host'].toLowerCase();
 	context.req.context = context;
-	context.routingEntry = config.routingTable[context.host] || config.fallbackRoute;
+	context.routingEntry = routeByHost(context) || routeByPath(context) || config.fallbackRoute;
 	if (!context.routingEntry) {
 		onProxyError(context, 404, 'Web application not found in routing table');
 	}
