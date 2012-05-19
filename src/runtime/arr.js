@@ -166,11 +166,6 @@ function determineConfiguration() {
 
 						config.apps[file].hosts[file] = { ssl: 'allowed' };
 					}
-					else {
-						// construct a wildcard host name; only one such app is allowed
-
-						config.apps[file].hosts['*'] = { ssl: 'allowed' };
-					}
 
 					return true;				
 				}
@@ -192,6 +187,8 @@ function determineConfiguration() {
 function calculateRoutingTable() {
 	config.routingTable = {};
 	config.pathRoutingTable = {};
+	var appCount = 0;
+	var oneAppName;
 
 	for (var app in config.apps) {
 		if (typeof config.apps[app].hosts === 'object') {
@@ -221,14 +218,33 @@ function calculateRoutingTable() {
 				}
 			}
 		}
+
+		appCount++;
+		oneAppName = app;
 	}
 
-	config.fallbackRoute = config.routingTable['*'];
+	if (appCount === 1) {
+
+		// there is only one application, make it a "catch all" application for all traffic unless disablePathRouting is on
+
+		var oneApp = config.apps[oneAppName];
+
+		if (!app.disablePathRouting) {
+			config.fallbackRoute = {
+				app: oneApp,
+				route: {
+					ssl: 'allowed'
+				}
+			};
+		}
+	}
 
 	console.log('Computed the following host routing table:');
 	console.log(config.routingTable);
 	console.log('Computed the following URL path routing table:');
 	console.log(config.pathRoutingTable);
+	console.log('Computed the following fallback application:');
+	console.log(config.fallbackRoute);
 
 	validateSslConfiguration();
 }

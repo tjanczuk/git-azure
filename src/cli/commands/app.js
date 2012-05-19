@@ -41,7 +41,7 @@ exports.action = function (cmd) {
 		if (config.certFile) {
 			var blob = azure.createBlobService(config.storageAccountName, config.storageAccountKey);
 			var fileName = path.resolve(process.cwd(), config.certFile);
-			config.cert = (config.host === '*' ? config.setup : config.host) + '.certificate.pem';
+			config.cert = config.host + '.certificate.pem';
 			blob.createBlockBlobFromFile(config.blobContainerName, config.cert, fileName, function (err) {
 				if (err) {
 					console.error('Unable to upload X.509 certificate from ' + fileName + ' to Windows Azure Blob Storage:');
@@ -61,7 +61,7 @@ exports.action = function (cmd) {
 		if (config.keyFile) {
 			var blob = azure.createBlobService(config.storageAccountName, config.storageAccountKey);
 			var fileName = path.resolve(process.cwd(), config.keyFile);
-			config.key = (config.host === '*' ? config.setup : config.host) + '.key.pem';
+			config.key = config.host + '.key.pem';
 			blob.createBlockBlobFromFile(config.blobContainerName, config.key, fileName, function (err) {
 				if (err) {
 					console.error('Unable to upload SSL private key from ' + fileName + ' to Windows Azure Blob Storage:');
@@ -95,7 +95,7 @@ exports.action = function (cmd) {
 		if (config.generateX509) {
 			var options = { config: config };
 			if (config.generateX509 === true) {
-				options.cn = config.host == '*' ? config.setup : config.host;
+				options.cn = config.host;
 			}
 			else {
 				options.cn = config.generateX509;
@@ -177,19 +177,21 @@ exports.action = function (cmd) {
 			config.packageJson.azure.hosts = {};
 		}
 
-		if (config.packageJson.azure.hosts[config.host]) {
-			if (config.ssl) {
-				config.packageJson.azure.hosts[config.host].ssl = config.ssl;
+		if (config.host) {
+			if (config.packageJson.azure.hosts[config.host]) {
+				if (config.ssl) {
+					config.packageJson.azure.hosts[config.host].ssl = config.ssl;
+				}
 			}
-		}
-		else {
-			if (!config.ssl) {
-				config.ssl = 'allowed';
-			}
+			else {
+				if (!config.ssl) {
+					config.ssl = 'allowed';
+				}
 
-			config.packageJson.azure.hosts[config.host] = {
-				ssl: config.ssl
-			};
+				config.packageJson.azure.hosts[config.host] = {
+					ssl: config.ssl
+				};
+			}
 		}
 
 		scaffoldContent();		
@@ -236,8 +238,9 @@ exports.action = function (cmd) {
 			var c = require(config.configFile);
 			if (c.azure) {
 				delete c.azure.hosts;
+				c.azure.pathRoutingDisabled = true;
 				fs.writeFileSync(config.configFile, JSON.stringify(c, null, 2));
-				console.log('Removed all hostname registrations for app ' + config.delete + '. This disables routing any messages to the app.');
+				console.log('Disabled URL path routing and removed all hostname registrations for app ' + config.delete + '. This disables routing any messages to the app.');
 				console.log('You must commit and push for the changes to take effect.');
 			}
 			else {
@@ -267,18 +270,9 @@ exports.action = function (cmd) {
 
 		if (!appConfig.azure) {
 			appConfig.inferred = true;
+			appConfig.azure = { hosts: {} };
 			if (app.indexOf('.') > 0) {
-				appConfig.azure = { hosts: {}};
 				appConfig.azure.hosts[app] = { ssl: 'allowed' };
-			}
-			else {
-				appConfig.azure = {
-					hosts: {
-						'*': {
-							ssl: 'allowed'
-						}
-					}
-				};
 			}
 
 			['server.js', 'app.js'].some(function (item) {
@@ -300,8 +294,8 @@ exports.action = function (cmd) {
 			errors.push('- app ' + app + ' specifies an entry script name that does not exist: ' + appConfig.azure.script);
 		}
 
-		if (!appConfig.azure.hosts || Object.getOwnPropertyNames(appConfig.azure.hosts).length === 0) {
-			warnings.push('- app ' + app + ' does not have any host names associated with it and is therefore disabled');
+		if (appConfig.azure.pathRoutingDisabled && (!appConfig.azure.hosts || Object.getOwnPropertyNames(appConfig.azure.hosts).length === 0)) {
+			warnings.push('- app ' + app + ' is disabled because it does not have any associated host names and has turned off URL path based routing');
 		}
 
 		return appConfig;
@@ -418,6 +412,16 @@ exports.action = function (cmd) {
 			});			
 		}
 
+		if (config.setup) {
+			if (!config.host && config.setup.indexOf('.') > -1) {
+				config.host = config.setup;
+			}
+
+			if (!config.host && (config.ssl || config.cert || config.certFile || config.key || config.keyFile || config.generateX509)) {
+				missing.push('--host must be specified when --ssl, --cert, --certFile, --key, --keyFile, or --generateX509 is specified');
+			}			
+		}
+
 		config.appsDir = path.resolve(config.git.projectRoot, 'apps');
 		config.appDir = path.resolve(config.appsDir, config.setup || config.delete);
 		config.configFile = path.resolve(config.appDir, 'package.json');
@@ -448,13 +452,6 @@ exports.action = function (cmd) {
 			showApp();
 		}
 		else { // --setup
-			if (!config.host) {
-				if (config.setup.indexOf('.') > -1)
-					config.host = config.setup;
-				else
-					config.host = '*';
-			}
-
 			createOrConfigureApp();
 		}
 	}
