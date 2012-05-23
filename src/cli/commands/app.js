@@ -232,11 +232,11 @@ exports.action = function (cmd) {
 			if (c.azure && c.azure.hosts && c.azure.hosts[config.host]) {
 				delete c.azure.hosts[config.host];
 				fs.writeFileSync(config.configFile, JSON.stringify(c, null, 2));
-				console.log('Hostname ' + config.host + ' deleted from app ' + config.delete + '.');
+				console.log('Hostname ' + config.host + ' deleted from app ' + config.disable + '.');
 				console.log('You must commit and push for the changes to take effect.');
 			}
 			else {
-				console.log('Hostname ' + config.host + ' not configured for app ' + config.delete + '. Nothing to delete.');
+				console.log('Hostname ' + config.host + ' not configured for app ' + config.disable + '. Nothing to delete.');
 			}
 		}
 		else {
@@ -251,20 +251,20 @@ exports.action = function (cmd) {
 				delete c.azure.hosts;
 				c.azure.pathRoutingDisabled = true;
 				fs.writeFileSync(config.configFile, JSON.stringify(c, null, 2));
-				console.log('Disabled URL path routing and removed all hostname registrations for app ' + config.delete + '. This disables routing any messages to the app.');
+				console.log('Disabled URL path routing and removed all hostname registrations for app ' + config.disable + '. This disables routing any messages to the app.');
 				console.log('You must commit and push for the changes to take effect.');
 			}
 			else {
-				console.log('Hostname ' + config.host + ' not configured for app ' + config.delete + '. Nothing to delete.');
+				console.log('Hostname ' + config.host + ' not configured for app ' + config.disable + '. Nothing to delete.');
 			}
 		}
 		else if (existsSync(config.appDir)) {
 			fs.writeFileSync(config.configFile, JSON.stringify({ azure: { script: 'server.js', hosts: {} }}, null, 2));
-			console.log('Created package.json file for app ' + config.delete + ' with no hostnames registred. This disables routing any messages to the app.')
+			console.log('Created package.json file for app ' + config.disable + ' with no hostnames registred. This disables routing any messages to the app.')
 			console.log('You must commit and push for the changes to take effect.');
 		}
 		else {
-			console.log('App ' + config.delete + ' does not exist. Nothing to delete.');	
+			console.log('App ' + config.disable + ' does not exist. Nothing to delete.');	
 		}
 	}
 
@@ -396,7 +396,7 @@ exports.action = function (cmd) {
 
 		var missing = [];
 
-		if (!config.setup && !config.delete && !config.show) {
+		if (!config.setup && !config.disable && !config.show) {
 			missing.push('- one of --setup, --show, or --delete must be specified');
 		}
 
@@ -438,7 +438,7 @@ exports.action = function (cmd) {
 		}
 
 		config.appsDir = path.resolve(config.git.projectRoot, 'apps');
-		config.appDir = path.resolve(config.appsDir, config.setup || config.delete);
+		config.appDir = path.resolve(config.appsDir, config.setup || config.disable);
 		config.configFile = path.resolve(config.appDir, 'package.json');
 
 		if (config.setup && config.gitUrl && existsSync(config.appDir)) {
@@ -452,7 +452,7 @@ exports.action = function (cmd) {
 			process.exit(1)
 		}
 
-		if (config.delete) {
+		if (config.disable) {
 			if (config.host) {
 				deleteHost();
 			}
@@ -480,7 +480,7 @@ exports.action = function (cmd) {
 		config = gitConfig;
 
 		common.merge(cmd, config, ['show', 'gitUrl', 'ssl', 'cert', 'certFile', 'key', 'keyFile', 'generateX509',
-			'disablePathRouting', 'enablePathRouting', 'entry', 'delete', 'host', 'setup', 'storageAccountName', 
+			'disablePathRouting', 'enablePathRouting', 'entry', 'disable', 'host', 'setup', 'storageAccountName', 
 			'storageAccountKey', 'blobContainerName']);
 
 		common.getGitContext(function (err, context) {
