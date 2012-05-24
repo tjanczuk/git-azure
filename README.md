@@ -119,13 +119,14 @@ git push
 
 Go to http://your_service_name.cloudapp.net again; you may need to refresh a few times as the update process typically takes 6-10 seconds; At the end you should see the 'Hello, world' of your first application
 
-## Second application - introduction of routing
+## Second application - introduction to routing
 
-When adding a second application, one needs to consider which requests are going to be routed to which of the two applications. This is convention based: 
-* the name of the directory under ```apps``` in which the application exists is the domain name of HTTP/WS requests that will be routed to it, 
-* if a directory is a simple name that does not look like a domain name (without a dot), it make a "fallback" application which receives all requests that did not match other directory names. Up to one such directory is allowed (and was created in the previous step of the walkthrough). 
+When adding a second application, one needs to consider which requests are going to be routed to which of the two applications. Routing is heavily convention based, and where conventions are not sufficient, explicit configuration can be used. All applications must be stored in subdirectories of the ```apps``` directory. The name of the subdirectory is the application name for routing purposes. A request is routed to an application when:
 
-Configuration that does not match this convention can be refined with entries in the package.json file of each app (including support for multiple domain names with different SSL certificates), which is not covered in this demo. 
+* it is the only application in the system, 
+* no host names are explicitly associated with that application through configuration, and the application name matches the host name of the request, 
+* host name of the request matches one of the host names explicitly associated with that application through configuration, 
+* application name matches the first segment of the URL path of the request, and the application did not explicitly disable URL path based routing.
 
 Create ```atest\apps\foobar.com``` directory and save the following ```server.js``` file in there:
 
@@ -136,23 +137,29 @@ require('http').createServer(function (req, res) {
 }).listen(process.env.PORT || 8000);
 ```
 
-(Note the ```foobar.com``` directory name that needs to map to hostnames of the incoming HTTP requests). 
-
 Then push it to GitHub:
 
 ```
 git add .
-git commit -m "first application"
+git commit -m "second application"
 git push
 ```
 
-Next, add an entry to the ```/etc/hosts``` file to map the ```foobar.com``` domain name to the IP address of the Windows Azure service that was provided to you during the one-time intialization. First call
+Then, go to ```http://your_service_name.cloudapp.net/foobar.com```. You should get a response from the second application you just added. You can also fo to ```http://your_service_name.cloudapp.net/hello``` and receive a response from the first application. 
+
+At this point you have two node.js applications running on a single VM on the same port 80. 
+
+##  Host name based routing
+
+The second application was placed in the ```foobar.com``` subdirectory, so given the convention based routing rules, all requests with host name equal to ```foobar.com``` will also be routed to that application. 
+
+To test this, add an entry to the ```/etc/hosts``` file to map the ```foobar.com``` domain name to the IP address of the Windows Azure service that was provided to you during the one-time intialization. First call
 
 ```
 git config --get azure.ip
 ```
 
-which will give you the IP address, say 65.52.238.34. Next, edit the ```/etc/hosts``` file with something like ```sudo nano /etc/hosts``` and enter the new host line:
+which will give you the IP address of your Windows Azure service, say 65.52.238.34. Next, edit the ```/etc/hosts``` file with something like ```sudo nano /etc/hosts``` and enter the new host line:
 
 ```
 65.52.238.34 foobar.com
@@ -162,27 +169,150 @@ Last, go to ```http://foobar.com```. You should see the 'SECOND APPLICATION' sho
 
 Note: in production, instead of adding A records to ```/etc/hosts``` or to their DNS registry, one would add a CNAME record redirecting the custom domain name to your_service_name.cloudapp.net. 
 
+## Explicit routing configuration
+
+Routing configuration for an application can be customized with entries in the ```package.json``` file in the root of the application's directory (e.g. ```apps/foobar.com/package.json```). In addition, the ```git azure app``` command helps make these configuration changes. Note that ```git azure app``` only scaffolds the changes locally, you still need to commit and push the changes with ```git commit``` and ```git push``` to make them effective. 
+
+To associate a host name ```baz.com``` with an application ```hello```, call:
+
+```
+git azure app --setup hello --host baz.com
+```
+
+You can call that command multiple times to associate more than one host name with a given application. 
+
+To remove the association of app ```hello``` with hostname ```baz.com```, call:
+
+```
+git azure app --delete hello --host baz.com
+```
+
+In a similar way you can control URL path based routing for an application. By default URL path based routing is enabled. To disable it for application ```hello```, call:
+
+```
+git azure app --setup hello --disablePathRouting
+```
+
+To re-enable again, call:
+
+```
+git azure app --setup hello --enablePathRouting
+```
+
+## Inspecting and validating routing configuration
+
+Effective routing configuration is computed from the explicit configuration and the conventional routing rules. You can inspect and validate effective routing configuration for a single application by calling:
+
+```
+git azure app --show hello
+```
+
+or for all applications by calling:
+
+```
+git azure app --show
+```
+
+The latter command is particularly useful as it will detect and warn about any issues in the routing configuration, e.g. a conflicting association of a particular host name to more than one application. 
+
 ## Third application - submodules and WebSockets
 
 This application shows two extra features of git-azure: ability to compose applications that reside in their own repositories, as well as support for WebSockets. 
 
-Take a look at the node.js application at https://github.com/tjanczuk/dante. It runs a small web server, serves an index.html page to the browser in response to any HTTP requests. The page in turn makes a WebSocket connection back to the server. When the server gets an upgrade request, it starts streaming Dante's Divine Comedy, Canto 1, back to the client, one stanza at a time. Try running it as a standalone node.js app to get a sense of what it does. 
+Take a look at the node.js application at https://github.com/tjanczuk/dante. It runs a small web server which serves an index.html page to the browser in response to any HTTP requests. The page in turn makes a WebSocket connection back to the server. When the server gets an upgrade request, it starts streaming Dante's Divine Comedy, Canto 1, back to the client, one stanza at a time. Try running it as a standalone node.js app to get a sense of what it does. 
 
 In this step we will add the application as a Git submodule to the ```atest``` repository. 
 
 First, go the root of the ```atest``` repo; from there:
 
 ```
-git submodule add git@github.com:tjanczuk/dante.git apps/dante.com
+git azure app --setup dante.com --gitUrl git@github.com:tjanczuk/dante.git
 git add .
 git commit -m "dante application"
 git push
 ```
 
-Similarly to the second app, add an entry to the ```/etc/hosts``` file to map the ```dante.com``` domain name to the IP address of the Windows Azure service, e.g.:
+You can then go to ```http://your_service_name.cloudapp.net/dante.com```, you should see Dante's Divine Comedy streamed back to you over WebSockets. If you configure an entry in the ```/etc/hosts``` file pointing from the ```dante.com``` host name to the IP address of your Windows Azure Service (similarly to what you have done with the second applicaiton above), you will also be able to reach the same applicatio with ```http://dante.com``` URL. 
+
+## SSL - the basics
+
+SSL is enabled by default using a self-signed X.509 certificate generated by ```git azure init```. All applications that can be reached over HTTP can also be reached over HTTPS. Similarly for WebSockets, all WS endpoints can also be reached with WSS. 
+
+Note that SSL is terminated at the HTTP reverse proxy level git-azure is running, and the local traffic between the reverse proxy and your application is always unsecured (HTTP or WS). So when authoring your server code, make sure to set up an HTTP and WS servers, not HTTPS or WSS. 
+
+The default self-signed X.509 certificate contains Common Name (CN) equal to the DNS name of your Windows Azure Service (i.e. ```CN=your_service_name.cloudapp.net```). Because the certificate is self-signed, browsers are going to display a warning when HTTPS endpoints are visited. 
+
+X.509 certificate of your service is securely stored in the Windows Azure Blob Storage associated your Windows Azure account. You can list the content of the storage by calling:
 
 ```
-65.52.238.34 foobar.com
+git azure blob --list
 ```
 
-Last, hit ```http://dante.com``` in a browser and enjoy Divine Comedy streamed to you over WebSockets.
+which will yield something like
+
+```
+bootstrap.cspkg
+master.certificate.pem
+master.key.pem
+```
+
+The ```master.certificate.pem``` and ```master.key.pem``` are the X.509 certificate and the associated private key of your service in PKCS#7 (PEM) format. You can download these credentials to your machine if you so desire (e.g. to set up explicit trust relationship) with:
+
+```
+git azure blob --get master.certificate.pem --file master.certificate.pem
+git azure blob --get master.key.pem --file master.key.pem
+```
+
+You can also supply your own X.509 certificates (perhaps issued by a publicly trusted certification authority, e.g. VeriSign) by uploading them to Windows Azure Blob Storage with:
+
+```
+git azure blob --put master.certificate.pem --file mycert.pem
+git azure blob --put master.key.pem --file mykey.pem
+```
+
+## SSL - application configuration
+
+By default, all applications accept both secure and non-secure traffic (i.e. HTTP, HTTPS, WS, and WSS), and the SSL trafic is protected with the single X.509 certificate configured at the service level (```master.certificate.pem``` and ```master.key.pem``` with CN=your_service_name.cloudapp.net).
+
+You can configure individual routes in the system to allow, require, or disallow SSL traffic. To require SSL for application ```hello``` when reached with host name route ```myapp.com```, call:
+
+```
+git azure app --setup hello --host myapp.com --ssl required
+```
+
+Similarly you can prevent SSL traffic or revert to the default (allow both SSL and non-secure traffic) with these two commands, respectively:
+
+```
+git azure app --setup hello --host myapp.com --ssl rejected
+git azure app --setup hello --host myapp.com --ssl allowed
+```
+
+(Note that any changes made by ```git azure app``` are local and need to be explicitly commited and pushed with git to become effective).
+
+You can also customize the SSL credentials a particular route will use if the client agent support Server Name Identification (virtualy all modern browsers do). Assuming your X.509 certficate and associated private key are stored in ```mycert.pem``` and ```mykey.pem``` files, you can call:
+
+```
+git azure app --setup hello --host myapp.com --ssl required --certFile mycert.pem --keyFile mykey.pem
+```
+
+The command will securely upload the certifiate and the key to Windows Azure Blob Storage, where your service will fetch it from after the configuration changes are pushed through git. 
+
+As a convenince, ```git azure app``` can also generate a set of self-signed X.509 credentials for you that will include the Common Name equal to the host name of the route. For example: 
+
+```
+git azure app --setup hello --host myapp.com --ssl required --generateX509
+```
+
+Will generate a self-signed certificate with CN=myapp.com, upload it to Windows Azure Blob Storage, and configure application ```hello``` to use that certificate with SNI. 
+
+## Roadmap - what is coming?
+
+These are some ideas for what I plan to enable next. Feel free to chime in by filing an issue. 
+
+* access to logs (inluding live log streaming)
+* SSH access to the VM
+* web based management portal (mostly diagnostics)
+
+## I do take contributions
+
+Inspired? Bored? Or just want to make the world a better place? Get in touch and we will go from there. 
