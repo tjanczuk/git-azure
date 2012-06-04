@@ -1,0 +1,67 @@
+<html>
+	<title>git-azure logs</title>
+	<style>
+		body { font-family: Arial; margin-left: 10px; } 
+		.init { color: blue; }
+		.stderr { color: red; }
+		.stdout { color: green; }
+		.exit { color: blue; }
+		.help { color: #ccc; font-size: 0.8em; margin-left: 50px; }
+	</style>
+<head>
+<script>
+	var body;
+
+	function addEntry(entry) {
+		body = body || document.getElementsByTagName('body')[0];
+		var div = document.createElement('div');
+
+		div.innerHTML = '<span class="' + entry.type + '">' + entry.app;
+		if (entry.pid) {
+			div.innerHTML += ' (' + entry.pid + ')'
+		}
+
+		div.innerHTML += '</span>';
+		if (entry.data) {
+			div.innerHTML += ': ' + entry.data;
+		}
+
+		body.appendChild(div);		
+	}
+
+	var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
+	var wsUrl = protocol + window.location.host + window.location.pathname + window.location.search;
+	var socket 
+	try {
+		socket = new WebSocket(wsUrl);
+	}
+	catch (e) {
+		addEntry({
+			app: 'git-azure',
+			type: 'stderr',
+			data: 'Unable to connect to the git-azure management service at ' + wsUrl + ':' + e.message || e.toString()
+		});
+	}
+
+	if (socket) {
+		socket.onmessage = function (msg) {
+			addEntry(JSON.parse(msg));
+		};
+
+		socket.onclose = function () {
+			addEntry({
+				app: 'git-azure',
+				type: 'stderr',
+				data: 'Connection to the git-azure management service was unexpectedly terminated. Try refreshing your browser window.'
+			});		
+		};
+	}
+</script>
+</head>
+<body>
+	<h2>git-azure real time logging</h2>
+	<p class="help">You can narrow down the scope of real time logs using query parameters:<br>
+		/logs?apps={comma separated list of application names}&amp;type={comma separated list of log entry types}<br>
+		The log entry types are: 'stdout', 'stderr', 'init', and 'exit'.</p>
+</body>
+</html>

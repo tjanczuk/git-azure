@@ -5,7 +5,9 @@ var httpProxy = require('http-proxy'),
 	net = require('net'),
 	fs = require('fs'),
 	path = require('path'),
-	azure = require('azure');
+	azure = require('azure'),
+	logging = require('./logging.js'),
+	url = require('url');
 
 var processes = {};
 var config;
@@ -547,9 +549,7 @@ function createProcess(context) {
 		else {
 			processes[port] = context.routingEntry.app.process;
 			context.routingEntry.app.to = { host: '127.0.0.1', port: port };
-			var logger = function(data) { process.stdout.write('PID ' + context.routingEntry.app.process.pid + ':' + data); };
-			context.routingEntry.app.process.stdout.on('data', logger);
-			context.routingEntry.app.process.stderr.on('data', logger);
+			logging.addAppProcess(context.routingEntry.app.name, context.routingEntry.app.process);
 			var currentProcesses = processes;
 			context.routingEntry.app.process.on('exit', function (code, signal) {
 				if (currentProcesses === processes) {
@@ -818,12 +818,34 @@ function isSystemInMaintenance(req, res) {
 }
 
 function onManagementRequest(req, res) {
-	if (isSystemInMaintenance(req, res)) {
-		return;
+	var pathname = url.parse(reqeust.url);
+
+	if (pathname[pathname.length - 1] !== '/') {
+		pathname += '/';
 	}
 
-	res.writeHead(501);
-	res.end();
+	if (req.method === 'GET' && pathname === '/logs/') {
+		logging.handleLoggingRequest(req, res);
+	}
+	else {
+		res.writeHead(400);
+		res.end();
+	}
+}
+
+function onManagementUpgradeRequest(request, socket, head) {
+	var pathname = url.parse(reqeust.url);
+
+	if (pathname[pathname.length - 1] !== '/') {
+		pathname += '/';
+	}
+
+	if (req.method === 'GET' && pathname === '/logs/') {
+		logging.addSession(request, socket, head);
+	}
+	else {
+		socket.destroy();
+	}
 }
 
 function onPostReceiveMessage(req, res) {
@@ -851,12 +873,16 @@ function setupManagement() {
 
 	if (config.sslEnabled) {
 		var options = { cert: config.sslCertificate, key: config.sslKey };
-		managementServer = https.createServer(options, onManagementRequest).listen(config.externalManagementPort);
-		console.log('HTTPS (secure) management endpoint set up on port ' + config.externalManagementPort);
+		managementServer = https.createServer(options, onManagementRequest);
+		managementServer.addListener('upgrade', onManagementUpgradeRequest);
+		managementServer.listen(config.externalManagementPort);
+		console.log('HTTPS/WSS (secure) management endpoint set up on port ' + config.externalManagementPort);
 	}
 	else {
-		managementServer = http.createServer(onManagementRequest).listen(config.externalManagementPort);
-		console.log('HTTP (unsecure) management endpoint set up on port ' + config.externalManagementPort);
+		managementServer = http.createServer(onManagementRequest);
+		managementServer.addListener('upgrade', onManagementUpgradeRequest);
+		managementServer.listen(config.externalManagementPort);
+		console.log('HTTP/WS (unsecure) management endpoint set up on port ' + config.externalManagementPort);
 	}
 }
 
