@@ -94,22 +94,18 @@ Given that the one-time initialization takes 8-12 minutes, I normally get it sta
 
 Configure the post-receive hook in GitHub: go to the administration section of the ```atest``` GitHub repository, select 'Service Hooks' on the left, then 'Web Hook URLs' on the list to the right, and then add the post-receive hook URL that was provided to you by ```git azure init``` in step 9. In the example above you would specifiy ```http://git-azure-3.cloudapp.net:31417/ec0291ff-3e5d-4f36-a3dd-c7b929dc6d8a```. Configuring the post-receive hook enables the system to automatically update running applications when changes are pushed with ```git push```.
 
-## First application
+## Creating your first application
 
 Adding a first application is very easy as you don't need to think about configuring routing information. Basically all HTTP/WS requests will be routed to the application if only one exists in the system, regardless what the hostname of the HTTP/WS requests is. 
 
 Go to http://your_service_name.cloudapp.net and show the respone indicating no applications are configured. 
 
-Create ```atest\apps\hello``` directory and save the following ```server.js``` file in there:
+Run the following command to scaffold a very simple application
 
-```
-require('http').createServer(function (req, res) {
-	res.writeHead(200, { 'Content-Type': 'text/plain'});
-	res.end('Hello, world!\nCurrent time on the server is ' + new Date() + '\n');
-}).listen(process.env.PORT || 8000);
-```
+`git azure app --setup hello`
 
-Then push it to GitHub:
+The scaffolder simply created an `apps\hello` folder with a very simple ```server.js``` and ```package.json``` inside.
+Now, commit that to the repo and push it.
 
 ```
 git add .
@@ -117,7 +113,7 @@ git commit -m "first application"
 git push
 ```
 
-Go to http://your_service_name.cloudapp.net again; you may need to refresh a few times as the update process typically takes 6-10 seconds; At the end you should see the 'Hello, world' of your first application
+Go to ```http://your_service_name.cloudapp.net``` again; you may need to refresh a few times as the update process typically takes 6-10 seconds; At the end you should see a webpage that explains more advanced concepts about git-azure.
 
 ## Second application - introduction to routing
 
@@ -128,16 +124,12 @@ When adding a second application, one needs to consider which requests are going
 * host name of the request matches one of the host names explicitly associated with that application through configuration, 
 * application name matches the first segment of the URL path of the request, and the application did not explicitly disable URL path based routing.
 
-Create ```atest\apps\foobar.com``` directory and save the following ```server.js``` file in there:
+Run the following command to scaffold a second application
 
-```
-require('http').createServer(function (req, res) {
-	res.writeHead(200, { 'Content-Type': 'text/plain'});
-	res.end('SECOND APPLICATION!\nCurrent time on the server is ' + new Date() + '\n');
-}).listen(process.env.PORT || 8000);
-```
+`git azure app --setup foobar.com`
 
-Then push it to GitHub:
+The scaffolder created a `apps\foobar.com` folder.
+Now, commit that to the repo and push it.
 
 ```
 git add .
