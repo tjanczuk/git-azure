@@ -12,20 +12,31 @@
 <script>
 	var body;
 
+	function htmlEscape(str) {
+	    return str
+	            .replace(/&/g, '&amp;')
+	            .replace(/"/g, '&quot;')
+	            .replace(/'/g, '&#39;')
+	            .replace(/</g, '&lt;')
+	            .replace(/>/g, '&gt;')
+	            .replace(/\n/g, '<br>');
+	}
+
 	function addEntry(entry) {
 		body = body || document.getElementsByTagName('body')[0];
-		var div = document.createElement('div');
 
-		div.innerHTML = '<span class="' + entry.type + '">' + entry.app;
+		var html = '<span class="' + entry.type + '">' + entry.app;
 		if (entry.pid) {
-			div.innerHTML += ' (' + entry.pid + ')'
+			html += ' (' + entry.pid + ')'
 		}
 
-		div.innerHTML += '</span>';
+		html += '</span>';
 		if (entry.data) {
-			div.innerHTML += ': ' + entry.data;
+			html += ': ' + htmlEscape(entry.data);
 		}
 
+		var div = document.createElement('div');
+		div.innerHTML = html;
 		body.appendChild(div);		
 	}
 
@@ -45,7 +56,7 @@
 
 	if (socket) {
 		socket.onmessage = function (msg) {
-			addEntry(JSON.parse(msg));
+			addEntry(JSON.parse(msg.data));
 		};
 
 		socket.onclose = function () {
@@ -59,7 +70,7 @@
 </script>
 </head>
 <body>
-	<h2>git-azure real time logging</h2>
+	<p>git-azure real time logging</p>
 	<p class="help">You can narrow down the scope of real time logs using query parameters:<br>
 		/logs?apps={comma separated list of application names}&amp;type={comma separated list of log entry types}<br>
 		The log entry types are: 'stdout', 'stderr', 'init', and 'exit'.</p>

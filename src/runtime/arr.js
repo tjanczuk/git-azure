@@ -818,7 +818,7 @@ function isSystemInMaintenance(req, res) {
 }
 
 function onManagementRequest(req, res) {
-	var pathname = url.parse(reqeust.url);
+	var pathname = url.parse(req.url).pathname;
 
 	if (pathname[pathname.length - 1] !== '/') {
 		pathname += '/';
@@ -833,15 +833,15 @@ function onManagementRequest(req, res) {
 	}
 }
 
-function onManagementUpgradeRequest(request, socket, head) {
-	var pathname = url.parse(reqeust.url);
+function onManagementUpgradeRequest(req, socket, head) {
+	var pathname = url.parse(req.url).pathname;
 
 	if (pathname[pathname.length - 1] !== '/') {
 		pathname += '/';
 	}
 
 	if (req.method === 'GET' && pathname === '/logs/') {
-		logging.addSession(request, socket, head);
+		logging.addSession(req, socket, head);
 	}
 	else {
 		socket.destroy();

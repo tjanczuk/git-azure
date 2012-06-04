@@ -61,7 +61,7 @@ var writelog = function (entry) {
 
 exports.addAppProcess = function (app, proc) {
 
-	writeLog({
+	writelog({
 		app: app,
 		type: 'init',
 		pid: proc.pid,
@@ -73,7 +73,7 @@ exports.addAppProcess = function (app, proc) {
 			app: app,
 			type: 'stderr',
 			pid: proc.pid,
-			data: data
+			data: data.toString()
 		});
 	});
 
@@ -82,7 +82,7 @@ exports.addAppProcess = function (app, proc) {
 			app: app,
 			type: 'stdout',
 			pid: proc.pid,
-			data: data
+			data: data.toString()
 		});
 	});
 
