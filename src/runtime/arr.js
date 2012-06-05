@@ -45,7 +45,7 @@ process.on('uncaughtException', function (e) {
 		logging.emit({
 			app: 'git-azure',
 			type: 'system',
-			data: message;
+			data: message
 		});
 	}
 
@@ -201,7 +201,7 @@ function determineConfiguration() {
 	// Move on to calculate the routing table
 
 	console.log('Computed the following configuration:');
-	console.log(config);
+	console(config);
 	console.log();
 
 	calculateRoutingTable();
