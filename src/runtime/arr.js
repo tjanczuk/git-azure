@@ -44,7 +44,7 @@ process.on('uncaughtException', function (e) {
 	if (logging.active()) {
 		logging.emit({
 			app: 'git-azure',
-			type: 'system',
+			type: 'stderr',
 			data: message
 		});
 	}
