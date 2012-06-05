@@ -201,7 +201,7 @@ function determineConfiguration() {
 	// Move on to calculate the routing table
 
 	console.log('Computed the following configuration:');
-	console(config);
+	console.log(config);
 	console.log();
 
 	calculateRoutingTable();
