@@ -54,6 +54,16 @@ program.command('app')
     .option('-b, --blobContainerName <name>', '[optional] name of the Windows Azure Blob Storage contaniner to create or use')
     .action(require('./commands/app.js').action);
 
+program.command('logs')
+    .description('Access real time logs.'.cyan)
+    .option('-n, --serviceName <name>', '[required] name of the Windows Azure service')
+    .option('-u, --username <username>', '[required] username for administration')
+    .option('-p, --password <password>', '[required] password for administration')
+    .option('-a, --apps <applications>', '[optional] comma delimited list of application names to show logs for')
+    .option('-t, --type <types>', "[optional] comma delimited list of log entry types: 'stdout', 'stderr', 'init', 'exit', or 'system'.")
+    .option('-c, --no_color', '[optional] do not use colors for output; useful when capturing logs to a file')
+    .action(require('./commands/logs.js').action);
+
 program.command('blob')
     .description('Manipulate data in Azure Blob Storage.'.cyan)
     .option('-p, --put <name>', 'add or override data in blob storage')
