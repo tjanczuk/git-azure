@@ -200,9 +200,7 @@ function determineConfiguration() {
 
 	// Move on to calculate the routing table
 
-	console.log('Computed the following configuration:');
-	console.log(config);
-	console.log();
+	console.log('Computed the following configuration:\n' + JSON.stringify(config, null, 2));
 
 	calculateRoutingTable();
 }
@@ -262,12 +260,9 @@ function calculateRoutingTable() {
 		}
 	}
 
-	console.log('Computed the following host routing table:');
-	console.log(config.routingTable);
-	console.log('Computed the following URL path routing table:');
-	console.log(config.pathRoutingTable);
-	console.log('Computed the following fallback application:');
-	console.log(config.fallbackRoute);
+	console.log('Computed the following host routing table:\n' + JSON.stringify(config.routingTable, null, 2));
+	console.log('Computed the following URL path routing table:\n' + JSON.stringify(config.pathRoutingTable, null, 2));
+	console.log('Computed the following fallback application:\n' + JSON.stringify(config.fallbackRoute, null, 2));
 
 	validateSslConfiguration();
 }
