@@ -112,7 +112,7 @@ exports.addAppProcess = function (app, proc) {
 			app: app,
 			type: 'exit',
 			pid: proc.pid,
-			data: 'application process exited'
+			data: 'application process exited',
 			code: code ? code.toString() : 'N/A',
 			signal: signal ? signal.toString() : 'N/A'
 		});
