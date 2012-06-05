@@ -35,7 +35,10 @@ exports.addSession = function (request, socket, head) {
 	var query = url.parse(request.url, true).query;
 
 	if (query.apps) {
-		sessions[id].apps = query.apps.split(',');
+		session[id].apps = {};
+		query.apps.split(',').forEach(function (item) {
+			sessions[id].apps[item] = true;
+		});
 	}
 
 	if (query.type) {
