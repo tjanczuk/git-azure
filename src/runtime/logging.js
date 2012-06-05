@@ -4,9 +4,14 @@ var WebSocket = require('faye-websocket')
 	, path = require('path');
 
 var id = 0;
+var sessionCount = 0;
 var sessions = {};
 var appProcesses = {};
 var loggingHtml = fs.readFileSync(path.resolve(__dirname, 'logging.html'), 'utf8');
+
+exports.active = function () {
+	return sessionCount > 0;
+}
 
 exports.addSession = function (request, socket, head) {
 	try {
@@ -19,9 +24,12 @@ exports.addSession = function (request, socket, head) {
 		return socket.destroy();
 	}
 
+	sessionCount++;
+
 	var tmpId = id;
 	sessions[id].ws.onclose = function () {
 		delete sessions[tmpId];
+		sessionCount--;
 	};
 
 	var query = url.parse(request.url, true).query;
@@ -59,6 +67,19 @@ var writelog = function (entry) {
 	}
 }
 
+exports.emit = function (thing) {
+	if (typeof entry === 'string') {
+		writelog({ 
+			app: 'git-azure',
+			type: 'system',
+			data: thing 
+		});
+	}
+	else {
+		writelog(thing);
+	}
+}
+
 exports.addAppProcess = function (app, proc) {
 
 	writelog({
@@ -91,8 +112,8 @@ exports.addAppProcess = function (app, proc) {
 			app: app,
 			type: 'exit',
 			pid: proc.pid,
-			code: code.toString(),
-			signal: signal.toString()
+			code: code ? code.toString() : 'N/A',
+			signal: signal ? signal.toString() : 'N/A'
 		});
 	});
 };
