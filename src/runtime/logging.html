@@ -8,10 +8,13 @@
 		.stdout { color: green; }
 		.exit { color: blue; }
 		.help { color: #ccc; font-size: 0.8em; margin-left: 50px; }
+		button { font-size: 1em; padding: 5px; margin-top: 30px;}
 	</style>
 <head>
 <script>
 	var body;
+	var socket;
+	var explicitStop;
 
 	function htmlEscape(str) {
 	    return str
@@ -20,11 +23,12 @@
 	            .replace(/'/g, '&#39;')
 	            .replace(/</g, '&lt;')
 	            .replace(/>/g, '&gt;')
-	            .replace(/\n/g, '<br>');
+	            .replace(/\n/g, '<br>')
+	            .replace(/ /g, '&nbsp;');
 	}
 
 	function addEntry(entry) {
-		body = body || document.getElementsByTagName('body')[0];
+		body = body || document.getElementsByTagName('div')[0];
 
 		var html = '<span class="' + entry.type + '">' + entry.app;
 		if (entry.pid) {
@@ -39,11 +43,18 @@
 		var div = document.createElement('div');
 		div.innerHTML = html;
 		body.appendChild(div);		
+		window.scrollTo(0, document.body.scrollHeight);
+	}
+
+	function stopLogging() {
+		if (socket) {
+			explicitStop = true;
+			socket.close();
+		}
 	}
 
 	var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
 	var wsUrl = protocol + window.location.host + window.location.pathname + window.location.search;
-	var socket 
 	try {
 		socket = new WebSocket(wsUrl);
 	}
@@ -61,19 +72,36 @@
 		};
 
 		socket.onclose = function () {
-			addEntry({
-				app: 'git-azure',
-				type: 'stderr',
-				data: 'Connection to the git-azure management service was unexpectedly terminated. Try refreshing your browser window.'
-			});		
+
+			document.getElementsByTagName('button')[0].style.visibility = 'hidden';
+
+			if (explicitStop) {
+				addEntry({
+					app: 'git-azure',
+					type: 'stderr',
+					data: 'Logging stopped. Refresh the browser window to start logging again.'
+				});	
+			}
+			else {
+				addEntry({
+					app: 'git-azure',
+					type: 'stderr',
+					data: 'Connection to the git-azure management service was unexpectedly terminated. Try refreshing your browser window.'
+				});	
+			}	
+
+			socket = null;
 		};
 	}
 </script>
 </head>
 <body>
-	<p>git-azure real time logging</p>
-	<p class="help">You can narrow down the scope of real time logs using query parameters:<br>
-		/logs?apps={comma separated list of application names}&amp;type={comma separated list of log entry types}<br>
-		The log entry types are: 'stdout', 'stderr', 'init', 'exit', and 'system'.</p>
+	<div id="logs">
+		<p>git-azure real time logging</p>
+		<p class="help">You can narrow down the scope of real time logs using query parameters:<br>
+			/logs?apps={comma separated list of application names}&amp;type={comma separated list of log entry types}<br>
+			The log entry types are: 'stdout', 'stderr', 'init', 'exit', and 'system'.</p>
+	</div>
+	<button onclick="stopLogging()">Stop logging</button>
 </body>
 </html>
