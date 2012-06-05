@@ -68,7 +68,7 @@ var writelog = function (entry) {
 }
 
 exports.emit = function (thing) {
-	if (typeof entry === 'string') {
+	if (typeof thing === 'string') {
 		writelog({ 
 			app: 'git-azure',
 			type: 'system',
