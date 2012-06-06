@@ -203,6 +203,11 @@ function determineConfiguration() {
 
 	console.log('Computed the following configuration:\n' + JSON.stringify(config, null, 2));
 
+	// enable the logging module to set up authorization credentials for WebSocket calls 
+	// made from the the HTML page served when logs are requested from the browser
+
+	logging.init(config);
+
 	calculateRoutingTable();
 }
 
@@ -834,14 +839,20 @@ function isSystemInMaintenance(req, res) {
 
 function authenticateManagementRequest(req, res) {
 	var result = false;
+	var up;
 
 	var authorization = req.headers['authorization'];
 	if (authorization) {
 		var components = authorization.split(' ');
 		if (components.length === 2) {
-			result = components[1] === config.up;
+			up = components[1];
 		}
 	}
+	else {
+		up = url.parse(req.url, true).query.authorization;
+	}
+
+	result = up === config.up;
 
 	if (!result && res) {
 		res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="git-azure management"' });

@@ -1,5 +1,6 @@
 var common = require('./common.js')
-	, WebSocket = require('faye-websocket').Client;
+	, WebSocket = require('faye-websocket').Client
+	, url = require('url');
 
 exports.action = function (cmd) {
 
@@ -40,8 +41,8 @@ exports.action = function (cmd) {
 			writelog({
 				app: 'git-azure',
 				type: 'stderr',
-				data: 'Unable to establish a WebSocket connection to either wss://' + config.endpoint 
-					+ ' or ws://' + config.endpoint + '.'
+				data: 'Unable to establish a WebSocket connection to either wss://' + config.sanitizedEndpoint 
+					+ ' or ws://' + config.sanitizedEndpoint + '.'
 			});
 
 			process.exit(1);
@@ -56,7 +57,7 @@ exports.action = function (cmd) {
 			writelog({
 				app: 'git-azure',
 				type: 'system',
-				data: 'Connected to ' + prefix + config.endpoint + '. Waiting for logs...'
+				data: 'Connected to ' + prefix + config.sanitizedEndpoint + '. Waiting for logs...'
 			});
 
 			connected = true;
@@ -101,21 +102,22 @@ exports.action = function (cmd) {
 		}
 
 		config.endpoint = config.serviceName + '.cloudapp.net:31415/logs';
-		if (config.apps || config.type) {
-			config.endpoint += '?';
-		}
+		config.endpoint += '?authorization=' + new Buffer(config.username + ':' + config.password).toString('base64');
 
 		if (config.apps) {
-			config.endpoint += 'apps=' + config.apps;
-			if (config.type) {
-				config.endpoint += '&';
-			}
+			config.endpoint += '&apps=' + config.apps;
 		}
 
 		if (config.type) {
-			config.endpoint += 'type=' + config.type;
+			config.endpoint += '&type=' + config.type;
 		}
 
+		var u = url.parse('ws://' + config.endpoint, true);
+		delete u.query.authorization;
+		delete u.search;
+		delete u.path;
+		config.sanitizedEndpoint = unescape(url.format(u).substring(5));
+		
 		connect(['wss://', 'ws://']);
 	}
 

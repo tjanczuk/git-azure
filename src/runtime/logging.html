@@ -15,6 +15,7 @@
 	var body;
 	var socket;
 	var explicitStop;
+	var authorization = '##AUTHORIZATION##';
 
 	function htmlEscape(str) {
 	    return str
@@ -55,6 +56,13 @@
 
 	var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
 	var wsUrl = protocol + window.location.host + window.location.pathname + window.location.search;
+	if (window.location.search) {
+		wsUrl += '&authorization=' + authorization;
+	}
+	else {
+		wsUrl += '?authorization=' + authorization;
+	}
+
 	try {
 		socket = new WebSocket(wsUrl);
 	}

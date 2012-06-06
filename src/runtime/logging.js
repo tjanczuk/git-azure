@@ -7,7 +7,11 @@ var id = 0;
 var sessionCount = 0;
 var sessions = {};
 var appProcesses = {};
-var loggingHtml = fs.readFileSync(path.resolve(__dirname, 'logging.html'), 'utf8');
+var loggingHtml;
+
+exports.init = function (config) {
+	loggingHtml = fs.readFileSync(path.resolve(__dirname, 'logging.html'), 'utf8').replace(/##AUTHORIZATION##/, config.up);
+}
 
 exports.active = function () {
 	return sessionCount > 0;
@@ -123,6 +127,6 @@ exports.addAppProcess = function (app, proc) {
 };
 
 exports.handleLoggingRequest = function (req, res) {
-	res.writeHead(200, { 'Content-Type': 'text/html' });
+	res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-cache' });
 	res.end(loggingHtml);
 };
