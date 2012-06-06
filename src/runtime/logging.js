@@ -31,7 +31,23 @@ exports.addSession = function (request, socket, head) {
 	sessionCount++;
 
 	var tmpId = id;
+	
+	sessions[id].interval = setInterval(function () {
+		try {
+			sessions[tmpId].ws.send('{"ping":1}');
+		}
+		catch (e) {
+			// empty
+		}
+	}, 10000);
+
 	sessions[id].ws.onclose = function () {
+		try {
+			clearInterval(sessions[tmpId].interval);
+		}
+		catch (e) {
+			// empty
+		}
 		delete sessions[tmpId];
 		sessionCount--;
 	};

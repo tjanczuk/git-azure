@@ -76,7 +76,10 @@
 
 	if (socket) {
 		socket.onmessage = function (msg) {
-			addEntry(JSON.parse(msg.data));
+			var entry = JSON.parse(msg.data);
+			if (!entry.ping) {
+				addEntry(entry);
+			}
 		};
 
 		socket.onclose = function () {
