@@ -82,7 +82,10 @@ exports.action = function (cmd) {
 		}
 
 		ws.onmessage = function (msg) {
-			writelog(JSON.parse(msg.data));
+			var entry = JSON.parse(msg.data);
+			if (!entry.ping) {
+				writelog(entry);
+			}
 		}
 	}
 
