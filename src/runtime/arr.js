@@ -883,6 +883,10 @@ function onManagementRequest(req, res) {
 }
 
 function onManagementUpgradeRequest(req, socket, head) {
+	if (!authenticateManagementRequest(req)) {
+		return socket.destroy();
+	}
+
 	var pathname = url.parse(req.url).pathname;
 
 	if (pathname[pathname.length - 1] !== '/') {

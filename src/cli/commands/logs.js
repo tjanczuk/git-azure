@@ -117,7 +117,7 @@ exports.action = function (cmd) {
 		delete u.search;
 		delete u.path;
 		config.sanitizedEndpoint = unescape(url.format(u).substring(5));
-		
+
 		connect(['wss://', 'ws://']);
 	}
 
