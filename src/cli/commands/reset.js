@@ -8,7 +8,7 @@ exports.action = function (cmd) {
 
 	function reset(engines) {
 		if (engines.length === 0) {
-			console.error('Unable to reset the git-azure service using either https://' + config.endpooint 
+			console.error('Unable to reset the git-azure service using either https://' + config.endpoint 
 					+ ' or http://' + config.endpoint + '.');
 			process.exit(1);
 		}
@@ -23,7 +23,7 @@ exports.action = function (cmd) {
 			auth: config.username + ':' + config.password
 		}
 
-		var req = engine.req(options, function (res) {
+		var req = engine.request(options, function (res) {
 			if (res.statusCode !== 201) {
 				reset(engines);
 			}
@@ -50,7 +50,7 @@ exports.action = function (cmd) {
 		});
 
 		if (config.soft && config.hard) {
-			missing.push('--soft and --hard are mutually exclusive';)
+			missing.push('--soft and --hard are mutually exclusive');
 		}
 
 		if (missing.length > 0) {
@@ -59,8 +59,9 @@ exports.action = function (cmd) {
 			process.exit(1);
 		}
 
+		config.host = config.serviceName + '.cloudapp.net';
 		config.path = '/reset/' + (config.hard ? 'hard' : 'soft');
-		config.endpoint = config.serviceName + '.cloudapp.net:31415' + config.path;
+		config.endpoint = config.host + ':31415' + config.path;
 
 		reset([https, http]);
 	}
