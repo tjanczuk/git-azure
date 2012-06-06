@@ -862,6 +862,18 @@ function authenticateManagementRequest(req, res) {
 	return result;
 }
 
+function hardReset() {
+	console.log('Initated hard reset of the git-azure service');
+	process.nextTick(function () {
+		process.exit(0);
+	});
+}
+
+function softReset() {
+	console.log('Initiated soft reset of the git-azure service');
+	recycleService();
+}
+
 function onManagementRequest(req, res) {
 	if (!authenticateManagementRequest(req, res)) {
 		return;
@@ -875,6 +887,16 @@ function onManagementRequest(req, res) {
 
 	if (req.method === 'GET' && pathname === '/logs/') {
 		logging.handleLoggingRequest(req, res);
+	}
+	else if ((req.method === 'POST' || req.method === 'GET') && pathname === '/reset/hard/') {
+		res.writeHead(201, { 'Content-Type': 'text/html', 'Cache-Control': 'no-cache' });
+		res.end('Hard reset of git-azure service initiated at ' + new Date());
+		hardReset();
+	}
+	else if ((req.method === 'POST' || req.method === 'GET') && pathname === '/reset/soft/') {
+		res.writeHead(201, { 'Content-Type': 'text/html', 'Cache-Control': 'no-cache' });
+		res.end('Soft reset of git-azure service initiated at ' + new Date());
+		softReset();
 	}
 	else {
 		res.writeHead(400);

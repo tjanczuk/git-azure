@@ -78,16 +78,13 @@ program.command('blob')
     .option('-b, --blobContainerName <name>', '[required] name of the Windows Azure Blob Storage contaniner to create or use')
     .action(require('./commands/blob.js').action);
 
-program.command('restart')
-    .description('Restart the Windows Azure service associated with this Git repo.'.cyan)
-    .option('-s, --subscription <id>', 'Windows Azure subscription ID to create the service under')
-    .option('-p, --publishSettings <file>', 'location of the *.publishSettings file for managing the specified subscription')
-    .option('-n, --serviceName <name>', 'name of the Windows Azure service to create')
-    .option('-r, --reboot', 'hard reboot the Windows Azure service rather then just recycle node.js applications')
-    .option('-q, --quiet', 'succeed or fail without showing prompts')
-    .action(function (cmd) {
-        console.log('restart: ', cmd);
-    });
+program.command('reset')
+    .option('-n, --serviceName <name>', '[required] name of the Windows Azure service')
+    .option('-u, --username <username>', '[required] username for administration')
+    .option('-p, --password <password>', '[required] password for administration')
+    .option('-s, --soft', '[default] recycle applications, sync repo, update configuration')
+    .option('-r, --hard', '[optional] recycle reverse proxy and sync git-azure runtime in addition to --soft actions')
+    .action(require('./commands/reset.js').action);
 
 program.command('destroy')
     .description('Destroy the Windows Azure service associated with this Git repo.'.cyan)
