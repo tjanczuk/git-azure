@@ -11,7 +11,6 @@ var httpProxy = require('http-proxy'),
 
 var processes = {};
 var config;
-var managementPassword;
 var server, secureServer, managementServer, postReceiveServer;
 var recycleInProgress;
 var recycleStartTime;
@@ -64,6 +63,7 @@ function determineConfiguration() {
 		postReceivePort: 31417,
 		postReceive: '/postReceive',
 		managementUsername: 'admin',
+		managementPassword: 'admin',
 		sslCertificateName: 'master.certificate.pem',
 		sslKeyName: 'master.key.pem',
 		startPort: 8000,
@@ -128,6 +128,7 @@ function determineConfiguration() {
 		AZURE_STORAGE_CONTAINER: 'azureStorageContainer',
 		POSTRECEIVE_URL_PATH: 'postReceive',
 		MANAGEMENT_USERNAME: 'managementUsername',
+		MANAGEMENT_PASSWORD: 'managementPassword',
 		POSTRECEIVE_PUBLIC_PORT: 'postReceivePort'
 	};
 
@@ -138,7 +139,7 @@ function determineConfiguration() {
 	}
 
 	config.currentPort = config.startPort;
-	managementPassword = process.env.MANAGEMENT_PASSWORD || 'admin';
+	config.up = new Buffer(config.managementUsername + ':' + config.managementPassword).toString('base64');
 
 	// process apps directory to determine app specific configuration
 
@@ -831,7 +832,30 @@ function isSystemInMaintenance(req, res) {
 	return recycleInProgress;
 }
 
+function authenticateManagementRequest(req, res) {
+	var result = false;
+
+	var authorization = req.headers['authorization'];
+	if (authorization) {
+		var components = authorization.split(' ');
+		if (components.length === 2) {
+			result = components[1] === config.up;
+		}
+	}
+
+	if (!result && res) {
+		res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="' + (req.headers['host'] || 'git-azure management') + '"' });
+		res.end();
+	}
+
+	return result;
+}
+
 function onManagementRequest(req, res) {
+	if (!authenticateManagementRequest(req, res)) {
+		return;
+	}
+
 	var pathname = url.parse(req.url).pathname;
 
 	if (pathname[pathname.length - 1] !== '/') {
