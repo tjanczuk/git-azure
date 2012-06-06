@@ -1,0 +1,33 @@
+<html>
+<head>
+	<title>git-azure management</title>
+	<style>
+		pre { background-color: eeeeee; padding: 10px; margin-left: 30px; } 
+		p { margin-left: 30px; } 
+		body { font-family: Arial; } 
+	</style>
+</head>
+<body>
+	<h2>git-azure management</h2>
+		<p>Running on <a href="https://github.com/tjanczuk/git-azure">git-azure</a> 
+			by <a href="http://tomasz.janczuk.org/">Tomasz Janczuk</a></p>
+	<h3>Real time logs</h3>
+		<p>Real time logging delivers stdout and stderr output from your applications as well
+		 as git-azure system messages to the browser or the terminal window using WebSockets.</p>
+		<p><a href="/logs">Access real time logs in the browser now</a></p>
+		<p>Access real time logs in the terminal with:
+		<pre>git azure logs</pre>
+	<h3>Soft reset</h3>
+		<p>Soft reset of the git-azure runtime recycles all application processes, syncs the Git repository,
+			and updates system configuration. The actions are identical to the actions performed when a post receive 
+			hook URL is invoked from Git on git push. The soft reset takes seconds. Active logging sessions remain active throughout the soft reset. Application endpoints are not available during the soft reset.</p>
+		<p><a href="/reset/soft">Initiatie soft reset now</a></p>
+		<p>Initiate soft reset from the terminal with:
+		<pre>git azure reset</pre>
+	<h3>Hard reset</h3>
+		<p>Hard reset of the git-azure runtime recycles the git-azure reverse proxy as well as all applications, syncs the Git repository, and updates system configuration. Hard reset restarts the git-azure runtime and is useful when an update to the git-azure runtime code in the .git-azure submodule has been checked in. Hard reset typically takes well under a minute. Management and application endpoints are unavailable during that time. </p>
+		<p><a href="/reset/hard">Initiatie hard reset now</a></p>
+		<p>Initiate hard reset from the terminal with:
+		<pre>git azure reset --hard</pre>
+</body>
+</html>

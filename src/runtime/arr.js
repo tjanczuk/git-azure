@@ -14,6 +14,7 @@ var config;
 var server, secureServer, managementServer, postReceiveServer;
 var recycleInProgress;
 var recycleStartTime;
+var managementHtml = fs.readFileSync(path.resolve(__dirname, 'management.html'), 'utf8');
 
 if (!fs.existsSync) {
 	// polyfill node v0.7 fs.existsSync with node v0.6 path.existsSync
@@ -897,6 +898,10 @@ function onManagementRequest(req, res) {
 		res.writeHead(201, { 'Content-Type': 'text/html', 'Cache-Control': 'no-cache' });
 		res.end('Soft reset of git-azure service initiated at ' + new Date());
 		softReset();
+	}
+	else if (req.method === 'GET' && pathname === '/') {
+		res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-cache' });
+		res.end(managementHtml);
 	}
 	else {
 		res.writeHead(400);
