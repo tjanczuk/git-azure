@@ -844,7 +844,7 @@ function authenticateManagementRequest(req, res) {
 	}
 
 	if (!result && res) {
-		res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="' + (req.headers['host'] || 'git-azure management') + '"' });
+		res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="git-azure management"' });
 		res.end();
 	}
 
