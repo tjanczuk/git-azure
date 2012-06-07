@@ -2,7 +2,8 @@ var fs = require('fs')
 	, path = require('path')
 	, common = require('./common.js')
 	, async = require('async')
-	, azure = require('azure');
+	, azure = require('azure')
+	, semver = require('semver');
 
 var existsSync = fs.existsSync || path.existsSync;
 
@@ -271,9 +272,11 @@ exports.action = function (cmd) {
 	function getAppConfig(app, errors, warnings) {
 		var appConfig = { app: app };
 		var configFile = path.resolve(config.appsDir, app, 'package.json');
+		var packageJson;
+
 		if (existsSync(configFile)) {
 			
-			var packageJson = require(configFile);
+			packageJson = require(configFile);
 
 			if (packageJson.azure) 
 				appConfig.azure = packageJson.azure;
@@ -298,6 +301,13 @@ exports.action = function (cmd) {
 			});
 		}
 
+		if (packageJson && packageJson.engines && packageJson.engines.node) {
+			appConfig.azure.engine = packageJson.engines.node;
+		}
+		else {
+			appConfig.azure.engine = '*';
+		}
+
 		if (!appConfig.azure.script) {
 			errors.push('- app ' + app + ' does not specify an entry script and neither server.js or app.js exist');
 		}
@@ -307,6 +317,14 @@ exports.action = function (cmd) {
 
 		if (appConfig.azure.pathRoutingDisabled && (!appConfig.azure.hosts || Object.getOwnPropertyNames(appConfig.azure.hosts).length === 0)) {
 			warnings.push('- app ' + app + ' is disabled because it does not have any associated host names and has turned off URL path based routing');
+		}
+
+		if (!semver.maxSatisfying(config.engines, appConfig.azure.engine)) {
+			errors.push('- app ' + app + ' requires a node engine version \'' 
+				+ appConfig.azure.engine + '\' which is not satisfied by any of the node engine versions '
+				+ ' installed (' + JSON.stringify(config.engines) + '). You can install additional node engine versions '
+				+ ' by adding them to the azure.engines array in the package.json file at the root of your repository, e.g. '
+				+ ' { "azure": { "engines": [ "0.6.19", "0.7.8" ] } }');
 		}
 
 		return appConfig;
@@ -460,11 +478,26 @@ exports.action = function (cmd) {
 				deleteApp();
 			}
 		}
-		else if (config.show === true) {
-			showAllApps();
-		}
 		else if (config.show) {
-			showApp();
+
+			var json;
+			try {
+				json = JSON.parse(fs.readFileSync(path.resolve(config.git.projectRoot, 'package.json'), 'utf8'));
+			}
+			catch (e) {}
+console.log(json);
+
+			if (json && json.azure && json.azure.engines) {
+				config.engines = json.azure.engines;
+			}
+			else {
+				config.engines = [ '0.6.19' ];
+			}
+
+			if (config.show === true)
+				showAllApps();
+			else
+				showApp();
 		}
 		else { // --setup
 			createOrConfigureApp();

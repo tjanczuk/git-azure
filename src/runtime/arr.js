@@ -7,7 +7,8 @@ var httpProxy = require('http-proxy'),
 	path = require('path'),
 	azure = require('azure'),
 	logging = require('./logging.js'),
-	url = require('url');
+	url = require('url'),
+	semver = require('semver');
 
 var processes = {};
 var config;
@@ -68,7 +69,8 @@ function determineConfiguration() {
 		sslCertificateName: 'master.certificate.pem',
 		sslKeyName: 'master.key.pem',
 		startPort: 8000,
-		endPort: 9000
+		endPort: 9000,
+		engines: ['0.6.19']
 	};
 
 	// get root directory from command line
@@ -160,9 +162,9 @@ function determineConfiguration() {
 		var file = rootDirContent[index];
 		var appDir = path.resolve(appsDir, file);
 		var appPackageJson = path.resolve(appDir, 'package.json');
+		var json;
 
 		if (fs.existsSync(appPackageJson)) {
-			var json;
 			try {
 				json = JSON.parse(fs.readFileSync(appPackageJson, 'utf8'));
 			}
@@ -197,6 +199,25 @@ function determineConfiguration() {
 
 				return false;
 			});
+		}
+
+		if (config.apps[file]) {
+			if (json && json.engines && json.engines.node) {
+				config.apps[file].engine = json.engines.node || '*';
+			}
+			else {
+				config.apps[file].engine = '*';
+			}
+
+			config.apps[file].effectiveEngine = semver.maxSatisfying(config.engines, config.apps[file].engine);
+			if (!config.apps[file].effectiveEngine) {
+				console.log('Application ' + file + ' requires a node engine version \'' 
+					+ config.apps[file].engine + '\' which is not satisfied by any of the node engine versions '
+					+ ' installed (' + JSON.stringify(config.engines) + '). You can install additional node engine versions '
+					+ ' by adding them to the azure.engines array in the package.json file at the root of your repository, e.g. '
+					+ ' { "azure": { "engines": [ "0.6.19", "0.7.8" ] } }');
+				process.exit(1);
+			}
 		}
 	}
 
@@ -322,11 +343,143 @@ function validateSslConfiguration() {
 		process.exit(0);
 	}
 
-	if (config.sslEnabled) {
-		obtainCertificates();
+	ensureEnginesDownloaded();
+}
+
+function ensureEnginesDownloaded() {
+
+	console.log('Ensuring required node engines are installed...');
+
+	var enginesDir = path.resolve(__dirname, 'engines');
+	if (!fs.existsSync(enginesDir)) {
+		try {
+			fs.mkdirSync(enginesDir);
+		}
+		catch (e) {
+			console.log('Unable to create directory to store node engines: ' + (e.message || e));
+			process.exit(1);
+		}
+	}
+
+	var completed = 0;
+	var failed = [];
+
+	config.engines.forEach(function (engine) {
+		ensureEngineDownloaded(engine, function (err) {
+			completed++;
+
+			if (err) {
+				failed.push(engine);
+			}
+
+			if (completed === config.engines.length) {
+				if (failed.length === 0) {
+					console.log('All node engines are installed.')
+					if (config.sslEnabled) {
+						obtainCertificates();
+					}
+					else {
+						initializeEndpoints();
+					}
+				}
+				else {
+					console.log('Not all node engines were successfuly installed.');
+
+					failed.forEach(function (engine) {
+						var engineDir = path.resolve(__dirname, 'engines', engine);
+						var engineFile = path.resolve(engineDir, 'node.exe');
+
+						if (fs.existsSync(engineFile)) {
+							try {
+								fs.unlinkSync(engineFile);
+							}
+							catch (e) {
+								// empty
+							}
+						}
+
+						if (fs.existsSync(engineDir)) {
+							try {
+								fs.unlinkSync(engineDir);
+							}
+							catch (e) {
+								// empty
+							}
+						}
+					});
+
+					process.exit(1);
+				}
+			}
+		});
+	});
+}
+
+function ensureEngineDownloaded(engine, callback) {
+	var engineDir = path.resolve(__dirname, 'engines', engine);
+	var engineFile = path.resolve(engineDir, 'node.exe');
+
+	if (fs.existsSync(engineFile)) {
+		console.log('Node engine v' + engine + ' is already installed.');
+		callback(null);
 	}
 	else {
-		initializeEndpoints();
+		var enginePath = '/dist/v' + engine + '/node.exe';
+		var req = http.get({ host: 'nodejs.org', port: 80, path: enginePath }, function (res) {
+			if (res.statusCode != 200) {
+				console.log('Unable to download engine v' + engine + ' from http://nodejs.org' + enginePath
+					+ '. HTTP response status code ' + res.statusCode + '.');
+				return callback(new Error('Unable to download engine'));
+			}
+
+			if (!fs.existsSync(engineDir)) {
+				try {
+					fs.mkdirSync(engineDir);
+				}
+				catch (e) {
+					console.log('Unable to create directory ' + engineDir + ' to store node engine v' + engine + '.');
+					return callback(e);
+				}
+			}
+
+			var stream;
+			try {
+				stream = fs.createWriteStream(engineFile);
+			}
+			catch (e) {
+				console.log('Unable to create file ' + engineFile + ' to store node engine v' + engine + '.');
+				return callback(e);
+			}
+
+			var callbackCalled;
+			res.on('error', function (e) {
+				console.log('Error downloading engine v' + engine + ' from http://nodejs.org' + enginePath);
+				try {
+					stream.destroy();
+				}
+				catch (e) {
+					// empty
+				}
+
+				callbackCalled = true;
+				return callback(e);
+			});
+
+			res.on('end', function () {
+				if (!callbackCalled) {
+					console.log('Downloaded engine v' + engine + ' from http://nodejs.org' + enginePath);
+					callback(null);
+				}
+			});
+
+			res.pipe(stream);
+		});
+
+		req.on('error', function (e) {
+			console.log('Unable to download engine v' + engine + ' from http://nodejs.org' + enginePath
+								+ ': ' + (e.message || e));
+			callback(e);			
+		});
 	}
 }
 
@@ -553,10 +706,13 @@ function createProcess(context) {
 		var env = getEnv(port);
 		var absolutePath = path.resolve(config.root, 'apps', context.routingEntry.app.name, context.routingEntry.app.script);
 
-		console.log('Starting application ' + context.routingEntry.app.name + ' with entry point ' + absolutePath);
+		var execPath = path.resolve(__dirname, 'engines', context.routingEntry.app.effectiveEngine, 'node.exe');
+
+		console.log('Starting application ' + context.routingEntry.app.name + ' with entry point ' + absolutePath 
+			+ ' using node engine v' + context.routingEntry.app.effectiveEngine);
 		
 		try { 
-			context.routingEntry.app.process = child_process.spawn(process.execPath, [ absolutePath ], { env: env }); 
+			context.routingEntry.app.process = child_process.spawn(execPath, [ absolutePath ], { env: env }); 
 		}
 		catch (e) {
 			// empty
