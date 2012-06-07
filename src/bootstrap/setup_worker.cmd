@@ -4,9 +4,11 @@ echo %DATE% %TIME% Entering setup_worker.cmd
 
 SET NODE_URL=http://nodejs.org/dist/v0.7.8/node-v0.7.8.msi
 SET GIT_URL=https://github.com/downloads/tjanczuk/git-azure/minigit-04272012.zip
+SET SSH_URL=http://www.freesshd.com/freeSSHd.exe
 
 SET THIS=%~dp0
 SET POST_SETUP=%THIS%\repo\.git-azure\src\bootstrap\post_setup.cmd
+SET POST_SETUP_1=%THIS%\repo\post_setup.cmd
 SET GIT=%THIS%\bin\git.exe
 
 echo %DATE% %TIME% Granting permissions for all users to the deployment directory...
@@ -17,13 +19,19 @@ if %ERRORLEVEL% NEQ 0 (
 )
 echo %DATE% %TIME% Permissions granted
 
+if exist %THIS%\node.msi if exist %THIS%\minigit.zip if exist %THIS%\freesshd.exe goto install_node
+
 echo %DATE% %TIME% Downloading prerequisities...
-%THIS%\download.exe 300 %NODE_URL% %THIS%\node.msi %GIT_URL% %THIS%\minigit.zip
+%THIS%\download.exe 300 %NODE_URL% %THIS%\node.msi %GIT_URL% %THIS%\minigit.zip %SSH_URL% %THIS%\freesshd.exe
 if %ERRORLEVEL% NEQ 0 (
    echo %DATE% %TIME% ERROR downloading prerequisities
    exit /b -1
 )
 echo %DATE% %TIME% Prerequisities downloaded
+
+:install_node
+
+if exist "%programfiles(x86)%\nodejs\node.exe" goto install_git
 
 echo %DATE% %TIME% Installing node.js...
 msiexec /i %THIS%\node.msi /q
@@ -32,7 +40,11 @@ if %ERRORLEVEL% NEQ 0 if %ERRORLEVEL% NEQ 1603 (
    echo %DATE% %TIME% ERROR installing node.js %ERRORLEVEL%
    exit /b -2
 )
-echo %DATE% %TIME% Node.js installed
+rem echo %DATE% %TIME% Node.js installed
+
+:install_git
+
+if exist %GIT% goto install_ssh
 
 echo %DATE% %TIME% Installing GIT...
 %THIS%\unzip.exe -o %THIS%\minigit.zip -d %THIS%
@@ -48,6 +60,20 @@ if NOT EXIST %GIT% (
    exit /b -4
 )
 echo %DATE% %TIME% GIT installed
+
+:install_ssh
+
+if exist "%programfiles(x86)%\freesshd\freesshdservice.exe" goto sync
+
+echo %DATE% %TIME% Installing FreeSSHd...
+%THIS%\freesshd.exe /verysilent /noicon /suppressmsgboxes
+if %ERRORLEVEL% NEQ 0 if %ERRORLEVEL% NEQ 5 (
+    echo %DATE% %TIME% ERROR installing FreeSSHd
+    exit /b -7
+)
+echo %DATE% %TIME% FreeSSHd installed
+
+:sync
 
 if exist %THIS%\repo\.git goto pull_only
 
@@ -79,7 +105,7 @@ if %ERRORLEVEL% NEQ 0 exit /b %ERRORLEVEL%
 
 :post_setup
 
-if NOT EXIST %POST_SETUP% goto end
+if NOT EXIST %POST_SETUP% goto post_setup_1
 
 echo %DATE% %TIME% Running post setup from %POST_SETUP%...
 call %POST_SETUP%
@@ -88,6 +114,18 @@ if %ERRORLEVEL% NEQ 0 (
    exit /b -8
 )
 echo %DATE% %TIME% Post setup finished
+
+:post_setup_1
+
+if not exist %POST_SETUP_1% goto end
+
+echo %DATE% %TIME% Running post setup 1 from %POST_SETUP_1%...
+call %POST_SETUP_1%
+if %ERRORLEVEL% NEQ 0 (
+   echo %DATE% %TIME% ERROR The post setup failed with %ERRORLEVEL%
+   exit /b -8
+)
+echo %DATE% %TIME% Post setup 1 finished
 
 :end
 
