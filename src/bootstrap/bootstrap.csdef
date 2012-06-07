@@ -28,6 +28,7 @@
       </Task>
     </Startup>
     <Endpoints>
+      <InputEndpoint name="SSH" protocol="tcp" port="22" />
       <InputEndpoint name="HttpIn" protocol="tcp" port="80" />
       <InputEndpoint name="HttpsIn" protocol="tcp" port="443" />
       <InputEndpoint name="ManagementPublic" protocol="tcp" port="31415" />
