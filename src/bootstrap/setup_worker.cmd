@@ -63,15 +63,73 @@ echo %DATE% %TIME% GIT installed
 
 :install_ssh
 
-if exist "%programfiles(x86)%\freesshd\freesshdservice.exe" goto sync
+if exist "%programfiles(x86)%\freesshd\freesshdservice.ini" goto add_ssh_user
 
 echo %DATE% %TIME% Installing FreeSSHd...
 %THIS%\freesshd.exe /verysilent /noicon /suppressmsgboxes
-if %ERRORLEVEL% NEQ 0 if %ERRORLEVEL% NEQ 5 (
+if %ERRORLEVEL% NEQ 0 (
     echo %DATE% %TIME% ERROR installing FreeSSHd
     exit /b -7
 )
-echo %DATE% %TIME% FreeSSHd installed
+
+:wait_for_ssh_install
+
+set RETRY=.
+if exist "%programfiles(x86)%\freesshd\freesshdservice.ini" (
+    echo %DATE% %TIME% FreeSSHd installed
+    goto add_ssh_user
+)
+if "%RETRY%" EQU "........" (
+    echo %DATE% %TIME% ERROR installing FreeSSHd
+    exit /b -7
+)
+set RETRY=%RETRY%.
+timeout 3 /nobreak
+goto wait_for_ssh_install
+
+:add_ssh_user
+
+findstr /C:"UserCount=0" "%programfiles(x86)%\freesshd\freesshdservice.ini" > nul
+if %ERRORLEVEL% NEQ 0 goto firewall
+echo %DATE% %TIME% Adding user %MANAGEMENT_USERNAME% to SSH users
+set SSH=%THIS%\freesshdservice.ini
+findstr /C:"UserCount=0" /v "%programfiles(x86)%\freesshd\freesshdservice.ini" > %SSH%
+echo UserCount=1 >> %SSH%
+echo [User0] >> %SSH%
+echo Name=%MANAGEMENT_USERNAME% >> %SSH%
+echo Auth=0 >> %SSH%
+echo Password=000000000000000000000000000000000000000000 >> %SSH%
+echo Domain= >> %SSH%
+echo Shell=1 >> %SSH%
+echo SFTP=1 >> %SSH%
+echo Tunnel=1 >> %SSH%
+copy /y %SSH% "%programfiles(x86)%\freesshd\freesshdservice.ini"
+if %ERRORLEVEL% NEQ 0 (
+    echo %DATE% %TIME% ERROR adding user %MANAGEMENT_USERNAME% to SSH users
+    exit /b -10
+)
+
+net stop freesshdservice
+if %ERRORLEVEL% NEQ 0 if %ERRORLEVEL% NEQ 2 (
+    echo %DATE% %TIME% ERROR stopping freesshdservice to update configuration
+    exit /b -11
+)
+net start freesshdservice
+if %ERRORLEVEL% NEQ 0 (
+    echo %DATE% %TIME% ERROR restarting freesshdservice to update configuration
+    exit /b -12
+)
+echo %DATE% %TIME% Added user %MANAGEMENT_USERNAME% to SSH users
+
+:firewall
+
+echo %DATE% %TIME% Opening up port 22 for SSH in the firewall...
+netsh advfirewall firewall add rule name="SSH" dir=in protocol=TCP localport=22 action=allow profile=public
+if %ERRORLEVEL% NEQ 0 (
+    echo %DATE% %TIME% ERROR opening port 22 for SSH in the firewall
+    exit /b -9
+)
+echo %DATE% %TIME% Port 22 opened in the firewall
 
 :sync
 

@@ -24,6 +24,9 @@
           <Variable name="REMOTE_BRANCH">
             <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/ConfigurationSettings/ConfigurationSetting[@name='REMOTE_BRANCH']/@value" />
           </Variable>
+          <Variable name="MANAGEMENT_USERNAME">
+            <RoleInstanceValue xpath="/RoleEnvironment/CurrentInstance/ConfigurationSettings/ConfigurationSetting[@name='MANAGEMENT_USERNAME']/@value" />
+          </Variable>
         </Environment>
       </Task>
     </Startup>
