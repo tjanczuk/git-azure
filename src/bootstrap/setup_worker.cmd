@@ -63,7 +63,7 @@ echo %DATE% %TIME% GIT installed
 
 :install_ssh
 
-if exist "%programfiles(x86)%\freesshd\freesshdservice.ini" goto add_ssh_user
+if exist "%programfiles(x86)%\freesshd\rsakey.cfg" goto add_ssh_user
 
 echo %DATE% %TIME% Installing FreeSSHd...
 %THIS%\freesshd.exe /verysilent /noicon /suppressmsgboxes
@@ -75,7 +75,7 @@ if %ERRORLEVEL% NEQ 0 (
 :wait_for_ssh_install
 
 set RETRY=.
-if exist "%programfiles(x86)%\freesshd\freesshdservice.ini" (
+if exist "%programfiles(x86)%\freesshd\rsakey.cfg" (
     echo %DATE% %TIME% FreeSSHd installed
     goto add_ssh_user
 )
@@ -89,24 +89,16 @@ goto wait_for_ssh_install
 
 :add_ssh_user
 
-findstr /C:"UserCount=0" "%programfiles(x86)%\freesshd\freesshdservice.ini" > nul
-if %ERRORLEVEL% NEQ 0 goto firewall
-echo %DATE% %TIME% Adding user %MANAGEMENT_USERNAME% to SSH users
-set SSH=%THIS%\freesshdservice.ini
-findstr /C:"UserCount=0" /v "%programfiles(x86)%\freesshd\freesshdservice.ini" > %SSH%
-echo UserCount=1 >> %SSH%
-echo [User0] >> %SSH%
-echo Name=%MANAGEMENT_USERNAME% >> %SSH%
-echo Auth=0 >> %SSH%
-echo Password=000000000000000000000000000000000000000000 >> %SSH%
-echo Domain= >> %SSH%
-echo Shell=1 >> %SSH%
-echo SFTP=1 >> %SSH%
-echo Tunnel=1 >> %SSH%
-copy /y %SSH% "%programfiles(x86)%\freesshd\freesshdservice.ini"
+copy /y %THIS%\freesshdservice.ini "%programfiles(x86)%\freesshd\freesshdservice.ini"
 if %ERRORLEVEL% NEQ 0 (
     echo %DATE% %TIME% ERROR adding user %MANAGEMENT_USERNAME% to SSH users
     exit /b -10
+)
+
+echo Name=%MANAGEMENT_USERNAME% >> "%programfiles(x86)%\freesshd\freesshdservice.ini"
+if %ERRORLEVEL% NEQ 0 (
+    echo %DATE% %TIME% ERROR adding user %MANAGEMENT_USERNAME% to SSH users
+    exit /b -13
 )
 
 net stop freesshdservice
