@@ -47,7 +47,7 @@ git config azure.username <username>
 git config azure.password <password>
 ```
 
-The username and password are used to set up SSH and RDO access to the Windows VM as well as HTTP Basic authentication to access real time logs and other management HTTP APIs. 
+The username and password are used to set up SSH and RDP access to the Windows VM as well as HTTP Basic authentication to access real time logs and other management HTTP APIs. 
 
 Finally start the initialization process:
 
