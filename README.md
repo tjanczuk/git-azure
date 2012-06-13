@@ -1,6 +1,22 @@
-# Walkthrough
+# git-azure
 
-This walkthrough demonstrates key features of the git-azure platform. Git-azure is a tool and runtime environment that allows deploying multiple node.js applications into Windows Azure Worker Role from MacOS using Git. 
+Git-azure is a tool and runtime environment that allows deploying multiple node.js applications into Windows Azure Worker Role from MacOS using Git. Git-azure supports:
+
+* hosting multiple node.js applications on a single Windows Azure VM (Worker Role) behind an HTTP reverse proxy
+* tight integration with your Git repository (likely on GitHub)
+* few second deployment and update of applications from Mac using ```git push```
+* HTTP and WebSocket traffic
+* SSL security by default
+* custom X.509 certificates per application using Server Name Identification (SNI)
+* real time access to logs using WebSockets from a terminal window or a web browser
+* support for multiple versions of node.js engines
+* SSH and RDP access to the Windows Azure VM for administration and diagnostics
+
+For an introduction to git-azure, you can [watch this 7 minute video](http://tomasz.janczuk.org/2012/05/develop-on-mac-host-on-github-and.html)
+
+## Walkthrough
+
+This walkthrough demonstrates key features of the git-azure platform.  
 
 It takes about 30-40 mins to present or walk through this content. 
 
@@ -8,18 +24,18 @@ Git-azure is work in progress. Not all planned features are done. The experience
 
 ## Prerequisities
 
-* MacOS - git-azure was developed primarily for use by MacOS developers; it may work on *nix, but I have not tested it there yet; I know it does not work on Windows, and fixing it is of relatively low priority, as Windows devs have alternatives.
+* MacOS - git-azure was developed primarily for use by MacOS developers; it may work on *nix, but I have not tested it there yet; I know it does not work on Windows, and fixing it is of relatively low priority, as Windows devs have alternatives
 * GitHub account
-* node.js and Git client installed; I've tested it with 0.7.8 of node.js; support for multiple versions SxS is planned, but right now the git-azure runtime requires this version of node.js
+* node.js and Git client installed
 * openssl installed
-* Windows Azure account created (https://windows.azure.com); there is 90 day free trial going on right now. 
+* Windows Azure account created (https://windows.azure.com)
 
 ## One-time initialization
 
 1. Create a new GitHub repo with a README (let's call it ```atest```) so that it can immediately be cloned. 
 2. Clone the repo into ```atest``` directory.
 3. Install git-azure with ```sudo npm install git-azure -g```
-4. Invoke ```git azure``` and explain the key concepts.
+4. Invoke ```git azure``` and review key concepts and commands
 5. Invoke ```git azure init``` and explain the key pieces of information that must be provided to initialize the system (publishSettings, serviceName, username, password).
 6. Download the *.publishSettings from https://windows.azure.com/download/publishprofile.aspx
 7. Go to the ```atest``` directory and stay there for the rest of initialization.
@@ -31,7 +47,7 @@ git config azure.username <username>
 git config azure.password <password>
 ```
 
-(The username and password are at present used to set up RDP access; going forward they will be used for Basic Auth to a mini management portal as well as SSH access to the box; Please note RDP access to Azure VMs from MacOS does not work today due to a known issue with Azure certificates).
+The username and password are used to set up SSH and RDO access to the Windows VM as well as HTTP Basic authentication to access real time logs and other management HTTP APIs. 
 
 Finally start the initialization process:
 
@@ -46,11 +62,14 @@ The one time initialization process takes between 8-12 minutes. In this time the
 * git-azure runtime is registerded as a Git submodule in the ```atest\.git-azure``` subdirectory, commited and pushed to the repo
 * A Windows Azure storage account is created is none exists
 * The package is uploaded to the Windows Azure Blob Storage under that account
+* self-signed X.509 certificate and associated private key for SSL are created and uploaded to Windows Azure Blob Storage
 * A hosted service is created (one small instance - will be configurable going forward)
-* RDP access is configured
+* SSH and RDP access is configured
 * node.js and git are installed on the box
 * The ```atest``` repo is cloned on the machine
 * an HTTP reverse proxy (part of the git-azure runtime) is started on the machine
+* management HTTP server is started on the machine to serve real time logs and perform other management tasks (e.g. receive post receive hook notifications from Git)
+* required node.js engine versions are downloaded and installed on the machine
 
 If the initialization process fails, it can be restarted with 
 
@@ -92,7 +111,7 @@ Given that the one-time initialization takes 8-12 minutes, I normally get it sta
 
 ## Post-receive hook configuration
 
-Configure the post-receive hook in GitHub: go to the administration section of the ```atest``` GitHub repository, select 'Service Hooks' on the left, then 'Web Hook URLs' on the list to the right, and then add the post-receive hook URL that was provided to you by ```git azure init``` in step 9. In the example above you would specifiy ```http://git-azure-3.cloudapp.net:31417/ec0291ff-3e5d-4f36-a3dd-c7b929dc6d8a```. Configuring the post-receive hook enables the system to automatically update running applications when changes are pushed with ```git push```.
+Configure the post-receive hook in GitHub: go to the administration section of the ```atest``` GitHub repository, select 'Service Hooks' on the left, then 'Web Hook URLs' on the list to the right, and then add the post-receive hook URL that was provided to you by ```git azure init``` in step 9. In the example above you would specifiy ```http://git-azure-3.cloudapp.net:31417/ec0291ff-3e5d-4f36-a3dd-c7b929dc6d8a```. Configuring the post-receive hook enables the system to automatically update running applications when changes are pushed with ```git push```. Without the post-receive hook configuration, a manual call to ```git azure reset``` will cause the git-azure runtime to refresh the applications with the latest code from the repository. 
 
 ## Creating your first application
 
@@ -139,7 +158,7 @@ git push
 
 Then, go to ```http://your_service_name.cloudapp.net/foobar.com```. You should get a response from the second application you just added. You can also fo to ```http://your_service_name.cloudapp.net/hello``` and receive a response from the first application. 
 
-At this point you have two node.js applications running on a single VM on the same port 80. 
+At this point you have two node.js applications running on a single VM on the same port 80 (and 443 for SSL protected requests). 
 
 ##  Host name based routing
 
@@ -297,13 +316,108 @@ git azure app --setup hello --host myapp.com --ssl required --generateX509
 
 Will generate a self-signed certificate with CN=myapp.com, upload it to Windows Azure Blob Storage, and configure application ```hello``` to use that certificate with SNI. 
 
-## Roadmap - what is coming?
+## Real time logs
 
-These are some ideas for what I plan to enable next. Feel free to chime in by filing an issue. 
+You can access the stderr and stdout output from your applications as well as a variety of system messages generated by git-azure in real time. They are delivered to you over WebSockets and can be accessed either from a web browser or from a terminal window. 
 
-* access to logs (inluding live log streaming)
-* SSH access to the VM
-* web based management portal (mostly diagnostics)
+To access logs from a terminal window, simply type:
+
+```
+git azure logs
+```
+
+from within your git repository. The command will establish a secure WebSocket connection (SSL + HTTP Basic client authentication using the username/password provided during ```git azure init```) to the git-azure service and start streaming any output generated by the application processes to stdout and stderr. Try adding a few ```console.log``` or ```console.error``` calls to your applications and see the results appear in the terminal window. 
+
+You can also access real time logs from the web browser by navigating to the management endpoint URL. The address of the endpoint can be obtained by running
+
+```
+git config --get azure.managementhttps
+```
+
+Open the URL in the browser (it will look something like ```https://git-azure-3.cloudapp.net:31415```). The first time you access it you will be asked for the username and password for HTTP Basic authentication - enter the credentials you provided during ```git azure init```. Then choose the link to the real time logs. 
+
+By default ```git azure logs``` as well as the web browser access to logs captures all logging information generated from all applications as well as the git-azure runtime itself. The scope of information can be narrowed down by application or category. For example, to only capture stdout from hello1 and hello2 applications as well as any system logs generated by git-azure, specify the following parameters:
+
+```
+git azure logs --apps hello1,hello2 --type stdout,system
+```
+
+Similar filtering can be performed when accessing logs from a web browser using URL query parameters. 
+
+## SSH access to the Windows Azure VM
+
+You can connect to your Windows Azure VM using SSH using the full DNS name of your service and the username and password you configured during ```git azure init```. If you forgot any of this informaiton, you can retrieve it with
+
+```
+git config --get azure.username
+git congig --get azure.cname
+```
+
+Then simply use your SSH client, e.g.:
+
+```
+ssh tjanczuk@git-azure-3.cloudapp.net
+```
+
+The command will connect you with an instance of cmd.exe console running on your server. The location of the git-azure deployment is ```e:\approot```, and the repository enlistment exists at ```e:\approot\repo```. 
+
+SSH also allows you to remotely execute scripts on the server. For example, to obtain the list of processes running on the server, you can call:
+
+```
+ssh tjanczuk@git-azure-3.cloudapp.net cmd /c tasklist
+```
+
+## Support for multiple versions of node.js
+
+Each application in your repository can use a different version of the node.js engine. 
+
+First, the ```package.json``` file at the root of your application (e.g. ```apps/hello/package.json```) must specify the version constraints of the node.js engine using regular mechanisms of package.json (type ```npm help json``` for more information), e.g.:
+
+```
+{
+  "engines": { 
+    "node": ">= 0.6.17" 
+  }
+}
+```
+
+Second, the git-azure runtime must be configured with the list of node.js versions that will be downloaded and made available to applications. This is done using the ```azure``` element of the ```package.json``` file at the root of the repository, e.g.:
+
+```
+{
+  "azure": {
+    "engines": ['0.6.19', '0.7.8']
+  }
+}
+```
+
+During startup, git-azure runtime will download all engine versions specified in this section from http://nodejs.org/dist/v{semver_version}. Next, when initializing a node process to handle an application, it will choose a node.js engine with the maximum version that satisifies the engine version requirement of the application. 
+
+## Resetting the git-azure runtime
+
+During normal operation, the git-azure runtime performs a reset when it receives a post receive hook notification from your Git repository. During the reset, all application processes are terminated, the repository is synchronized, the configuration is recalculated, SSL certificates are re-obtained from Windows Azure Blob storage, and the service is re-opened. This process typically takes a few seconds. 
+
+In special circumstances you may need to force the git-azure runtime to perform a reset. These include situations where you have chosen not to configure the post receive hook in your Git repository, or if you have changed the SSL certificates uploaded to the Windows Azure Blob storage. In such cases you can force the reset of the git-azure runtime with
+
+```
+git azure reset
+```
+
+This type of reset is sufficient to update the deployment and configuration of your applications in majority of cases. In a more esoteric case when you have updated not only the application code but also the code of git-azure runtime itself in your repository (which is registered as a git submodule in the .git-azure subdirectory), you will want to force the entire git-azure runtime to recycle. This can be accomplished with 
+
+```
+git azure reset --hard
+```
+
+The hard reset typically takes less than a minute. 
+
+Finally, in the most exceptional of situations, you may want to re-deploy the entire Windows Azure service anew to start from a clean slate. This can be accomplished by calling
+
+```
+git azure init --force
+```
+
+from within a repository in which you have previously called ```git azure init```. This process will take several minutes. All applications in the repository will remain intact, and so will all SSL certificates and other artifacts you uploaded to the Windows Azure Blob service. 
 
 ## I do take contributions
 
