@@ -3,13 +3,13 @@
 echo %DATE% %TIME% Entering setup_worker.cmd
 
 SET NODE_URL=http://nodejs.org/dist/v0.7.8/node-v0.7.8.msi
-SET GIT_URL=https://github.com/downloads/tjanczuk/git-azure/minigit-04272012.zip
+SET GIT_URL=http://msysgit.googlecode.com/files/Git-1.7.9-preview20120201.exe
 SET SSH_URL=http://www.freesshd.com/freeSSHd.exe
 
 SET THIS=%~dp0
 SET POST_SETUP=%THIS%\repo\.git-azure\src\bootstrap\post_setup.cmd
 SET POST_SETUP_1=%THIS%\repo\post_setup.cmd
-SET GIT=%THIS%\bin\git.exe
+SET GIT=%programfiles(x86)%\Git\cmd\git.cmd
 
 echo %DATE% %TIME% Granting permissions for all users to the deployment directory...
 icacls %THIS% /grant "Users":(OI)(CI)F
@@ -22,7 +22,7 @@ echo %DATE% %TIME% Permissions granted
 if exist %THIS%\node.msi if exist %THIS%\minigit.zip if exist %THIS%\freesshd.exe goto install_node
 
 echo %DATE% %TIME% Downloading prerequisities...
-%THIS%\download.exe 300 %NODE_URL% %THIS%\node.msi %GIT_URL% %THIS%\minigit.zip %SSH_URL% %THIS%\freesshd.exe
+%THIS%\download.exe 300 %NODE_URL% %THIS%\node.msi %GIT_URL% %THIS%\Git-1.7.9-preview20120201.exe %SSH_URL% %THIS%\freesshd.exe
 if %ERRORLEVEL% NEQ 0 (
    echo %DATE% %TIME% ERROR downloading prerequisities
    exit /b -1
@@ -47,13 +47,13 @@ rem echo %DATE% %TIME% Node.js installed
 if exist %GIT% goto install_ssh
 
 echo %DATE% %TIME% Installing GIT...
-%THIS%\unzip.exe -o %THIS%\minigit.zip -d %THIS%
+%THIS%\Git-1.7.9-preview20120201.exe /silent
 if %ERRORLEVEL% NEQ 0 (
    echo %DATE% %TIME% ERROR installing GIT
    exit /b -3
 )
 
-set PATH=%THIS%\bin;%PATH%
+SET PATH="D:\Program Files (x86)\Git\cmd";%PATH%;
 
 if NOT EXIST %GIT% (
    echo %DATE% %TIME% ERROR Unable to find GIT at %GIT%
