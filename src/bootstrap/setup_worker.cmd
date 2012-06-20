@@ -19,7 +19,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 echo %DATE% %TIME% Permissions granted
 
-if exist %THIS%\node.msi if exist %THIS%\minigit.zip if exist %THIS%\freesshd.exe goto install_node
+if exist %THIS%\node.msi if exist %THIS%\Git-1.7.9-preview20120201.exe if exist %THIS%\freesshd.exe goto install_node
 
 echo %DATE% %TIME% Downloading prerequisities...
 %THIS%\download.exe 300 %NODE_URL% %THIS%\node.msi %GIT_URL% %THIS%\Git-1.7.9-preview20120201.exe %SSH_URL% %THIS%\freesshd.exe
