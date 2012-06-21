@@ -128,7 +128,7 @@ echo %DATE% %TIME% Port 22 opened in the firewall
 if exist %THIS%\repo\.git goto pull_only
 
 echo %DATE% %TIME% Cloning branch %REMOTE_BRANCH% from repo %REMOTE_URL%...
-%GIT% clone -b %REMOTE_BRANCH% %REMOTE_URL% %THIS%\repo
+call %GIT% clone -b %REMOTE_BRANCH% %REMOTE_URL% %THIS%\repo
 if %ERRORLEVEL% NEQ 0 (
    echo %DATE% %TIME% ERROR Unable to clone branch %REMOTE_BRANCH% from repo %REMOTE_URL%
    exit /b -5
@@ -137,7 +137,7 @@ echo %DATE% %TIME% Repo cloned
 
 echo %DATE% %TIME% Updating submodules...
 pushd %THIS%\repo
-%GIT% submodule update --init --recursive
+call %GIT% submodule update --init --recursive
 if %ERRORLEVEL% NEQ 0 (
    popd
    echo %DATE% %TIME% ERROR Updating submodules

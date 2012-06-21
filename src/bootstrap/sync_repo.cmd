@@ -8,7 +8,7 @@ SET GIT=%programfiles(x86)%\Git\cmd\git.cmd
 pushd %THIS%\repo
 
 echo %DATE% %TIME% Resetting the repo...
-%GIT% reset --hard
+call %GIT% reset --hard
 if %ERRORLEVEL% NEQ 0 (
    popd
    echo %DATE% %TIME% ERROR Unable to reset the repository
@@ -17,7 +17,7 @@ if %ERRORLEVEL% NEQ 0 (
 echo %DATE% %TIME% Repo reset
 
 echo %DATE% %TIME% Pulling the repo...
-%GIT% pull origin %REMOTE_BRANCH%
+call %GIT% pull origin %REMOTE_BRANCH%
 if %ERRORLEVEL% NEQ 0 (
    popd
    echo %DATE% %TIME% ERROR Unable to pull the repository
@@ -26,7 +26,7 @@ if %ERRORLEVEL% NEQ 0 (
 echo %DATE% %TIME% Latest repository bits pulled
 
 echo %DATE% %TIME% Updating submodules...
-%GIT% submodule update --init --recursive
+call %GIT% submodule update --init --recursive
 if %ERRORLEVEL% NEQ 0 (
    popd
    echo %DATE% %TIME% ERROR Updating submodules
