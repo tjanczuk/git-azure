@@ -48,7 +48,7 @@ rem echo %DATE% %TIME% Node.js installed
 if exist %GIT% goto install_ssh
 
 echo %DATE% %TIME% Installing GIT...
-%THIS%\7za.exe x PortableGit-1.7.8-preview20111206.7z -y -o"%GITPATH%"
+%THIS%\7za.exe x PortableGit-1.7.11-preview20120620.7z -y -o"%GITPATH%"
 if %ERRORLEVEL% NEQ 0 (
    echo %DATE% %TIME% ERROR installing GIT
    exit /b -3
