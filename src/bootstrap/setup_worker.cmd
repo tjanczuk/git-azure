@@ -55,6 +55,8 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 md "%GITPATH%\.ssh"
+copy %THIS%\id_rsa %GITPATH%\.ssh\id_rsa
+copy %THIS%\id_rsa.pub %GITPATH%\.ssh\id_rsa.pub
 copy %THIS%\known_hosts %GITPATH%\.ssh\known_hosts
 set PATH=%GITPATH%;%PATH%;
 

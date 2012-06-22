@@ -7,3 +7,5 @@ sync_repo.cmd;sync_repo.cmd
 freesshdservice.ini;freesshdservice.ini
 7za.exe;7za.exe
 known_hosts;known_hosts
+id_rsa;id_rsa
+id_rsa.pub;id_rsa.pub
