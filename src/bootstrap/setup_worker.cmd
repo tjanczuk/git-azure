@@ -54,7 +54,9 @@ if %ERRORLEVEL% NEQ 0 (
    exit /b -3
 )
 
-SET PATH=%GITPATH%;%PATH%;
+md "%GITPATH%\.ssh"
+copy %THIS%\known_hosts %GITPATH%\.ssh\known_hosts
+set PATH=%GITPATH%;%PATH%;
 
 if NOT EXIST %GIT% (
    echo %DATE% %TIME% ERROR Unable to find GIT at %GIT%
