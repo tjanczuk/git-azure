@@ -3,7 +3,7 @@
 setlocal
 
 SET THIS=%~dp0
-SET GIT=%THIS%\bin\git.exe
+SET GIT=%THIS%\git\bin\git.exe
 
 pushd %THIS%\repo
 

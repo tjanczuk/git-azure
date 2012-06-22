@@ -1,7 +1,7 @@
 @echo off
 
 SET THIS=%~dp0
-SET GIT_EXE=%THIS%\bin\git.exe
+SET GIT_EXE=%THIS%\git\bin\git.exe
 
 echo %DATE% %TIME% Entering start_worker.cmd
 
