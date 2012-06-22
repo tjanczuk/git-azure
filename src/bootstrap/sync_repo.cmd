@@ -3,12 +3,12 @@
 setlocal
 
 SET THIS=%~dp0
-SET GIT=%programfiles(x86)%\Git\cmd\git.cmd
+SET GIT=%THIS%\git\bin\git.exe
 
 pushd %THIS%\repo
 
 echo %DATE% %TIME% Resetting the repo...
-call %GIT% reset --hard
+%GIT% reset --hard
 if %ERRORLEVEL% NEQ 0 (
    popd
    echo %DATE% %TIME% ERROR Unable to reset the repository
@@ -17,7 +17,7 @@ if %ERRORLEVEL% NEQ 0 (
 echo %DATE% %TIME% Repo reset
 
 echo %DATE% %TIME% Pulling the repo...
-call %GIT% pull origin %REMOTE_BRANCH%
+%GIT% pull origin %REMOTE_BRANCH%
 if %ERRORLEVEL% NEQ 0 (
    popd
    echo %DATE% %TIME% ERROR Unable to pull the repository
@@ -26,7 +26,7 @@ if %ERRORLEVEL% NEQ 0 (
 echo %DATE% %TIME% Latest repository bits pulled
 
 echo %DATE% %TIME% Updating submodules...
-call %GIT% submodule update --init --recursive
+%GIT% submodule update --init --recursive
 if %ERRORLEVEL% NEQ 0 (
    popd
    echo %DATE% %TIME% ERROR Updating submodules

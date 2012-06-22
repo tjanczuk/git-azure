@@ -3,13 +3,14 @@
 echo %DATE% %TIME% Entering setup_worker.cmd
 
 SET NODE_URL=http://nodejs.org/dist/v0.7.8/node-v0.7.8.msi
-SET GIT_URL=http://msysgit.googlecode.com/files/Git-1.7.9-preview20120201.exe
+SET GIT_URL=http://msysgit.googlecode.com/files/PortableGit-1.7.11-preview20120620.7z
 SET SSH_URL=http://www.freesshd.com/freeSSHd.exe
 
 SET THIS=%~dp0
 SET POST_SETUP=%THIS%\repo\.git-azure\src\bootstrap\post_setup.cmd
 SET POST_SETUP_1=%THIS%\repo\post_setup.cmd
-SET GIT=%programfiles(x86)%\Git\cmd\git.cmd
+SET GITPATH=%THIS%\git\
+SET GIT=%THIS%\git\bin\git.exe
 
 echo %DATE% %TIME% Granting permissions for all users to the deployment directory...
 icacls %THIS% /grant "Users":(OI)(CI)F
@@ -22,7 +23,7 @@ echo %DATE% %TIME% Permissions granted
 if exist %THIS%\node.msi if exist %THIS%\Git-1.7.9-preview20120201.exe if exist %THIS%\freesshd.exe goto install_node
 
 echo %DATE% %TIME% Downloading prerequisities...
-%THIS%\download.exe 300 %NODE_URL% %THIS%\node.msi %GIT_URL% %THIS%\Git-1.7.9-preview20120201.exe %SSH_URL% %THIS%\freesshd.exe
+%THIS%\download.exe 300 %NODE_URL% %THIS%\node.msi %GIT_URL% %THIS%\PortableGit-1.7.11-preview20120620.7z %SSH_URL% %THIS%\freesshd.exe
 if %ERRORLEVEL% NEQ 0 (
    echo %DATE% %TIME% ERROR downloading prerequisities
    exit /b -1
@@ -47,13 +48,13 @@ rem echo %DATE% %TIME% Node.js installed
 if exist %GIT% goto install_ssh
 
 echo %DATE% %TIME% Installing GIT...
-%THIS%\Git-1.7.9-preview20120201.exe /silent
+%THIS%\7za.exe x PortableGit-1.7.8-preview20111206.7z -y -o"%GITPATH%"
 if %ERRORLEVEL% NEQ 0 (
    echo %DATE% %TIME% ERROR installing GIT
    exit /b -3
 )
 
-SET PATH="D:\Program Files (x86)\Git\cmd";%PATH%;
+SET PATH=%GITPATH%;%PATH%;
 
 if NOT EXIST %GIT% (
    echo %DATE% %TIME% ERROR Unable to find GIT at %GIT%
@@ -128,7 +129,7 @@ echo %DATE% %TIME% Port 22 opened in the firewall
 if exist %THIS%\repo\.git goto pull_only
 
 echo %DATE% %TIME% Cloning branch %REMOTE_BRANCH% from repo %REMOTE_URL%...
-call %GIT% clone -b %REMOTE_BRANCH% %REMOTE_URL% %THIS%\repo
+%GIT% clone -b %REMOTE_BRANCH% %REMOTE_URL% %THIS%\repo
 if %ERRORLEVEL% NEQ 0 (
    echo %DATE% %TIME% ERROR Unable to clone branch %REMOTE_BRANCH% from repo %REMOTE_URL%
    exit /b -5
@@ -137,7 +138,7 @@ echo %DATE% %TIME% Repo cloned
 
 echo %DATE% %TIME% Updating submodules...
 pushd %THIS%\repo
-call %GIT% submodule update --init --recursive
+%GIT% submodule update --init --recursive
 if %ERRORLEVEL% NEQ 0 (
    popd
    echo %DATE% %TIME% ERROR Updating submodules
