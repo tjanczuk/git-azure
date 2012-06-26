@@ -1,12 +1,16 @@
 {
   "name": "git-azure",
   "description": "Git-deploy multiple node.js apps to Azure Worker Role from MacOS in seconds",
-  "version": "0.5.0-pre",
+  "version": "0.5.0",
   "author": {
     "name": "Tomasz Janczuk <tomasz@janczuk.org>",
     "url": "http://tomasz.janczuk.org",
     "twitter": "tjanczuk"
   },
+  "contrbutors": [
+    "Matias Woloski (https://twitter.com/#!/woloski)",
+    "Johnny G. Halife (https://twitter.com/#!/johnnyhalife)"
+  ],
   "dependencies": {
     "xml2js" : ">= 0.1.11",
     "commander": ">= 0.5.2",
