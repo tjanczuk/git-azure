@@ -2,7 +2,7 @@
 
 echo %DATE% %TIME% Entering setup_worker.cmd
 
-SET NODE_URL=http://nodejs.org/dist/v0.7.8/node-v0.7.8.msi
+SET NODE_URL=http://nodejs.org/dist/v0.8.0/node-v0.8.0-x86.msi
 SET GIT_URL=http://msysgit.googlecode.com/files/PortableGit-1.7.11-preview20120620.7z
 SET SSH_URL=http://www.freesshd.com/freeSSHd.exe
 
