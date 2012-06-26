@@ -5,6 +5,10 @@ SET GIT_EXE=%THIS%\git\bin\git.exe
 
 echo %DATE% %TIME% Entering start_worker.cmd
 
+echo %DATE% %TIME% Running Environment Configuration Script
+if exist %THIS%\repo\set_env_vars.cmd call %THIS%\repo\set_env_vars.cmd
+echo %DATE% %TIME% End Environment Configuration Script
+
 echo %DATE% %TIME% Starting arr.js runtime
 "%programfiles(x86)%\nodejs\"node.exe %THIS%\repo\.git-azure\src\runtime\arr.js -r %THIS%\repo -s %THIS%\sync_repo.cmd
 echo %DATE% %TIME% Arr.js runtime terminated with code %ERRORLEVEL%
