@@ -386,7 +386,7 @@ Second, the git-azure runtime must be configured with the list of node.js versio
 ```
 {
   "azure": {
-    "engines": ['0.6.19', '0.7.8']
+    "engines": ['0.6.19', '0.7.8', '0.8.0']
   }
 }
 ```
@@ -419,6 +419,12 @@ git azure init --force
 
 from within a repository in which you have previously called ```git azure init```. This process will take several minutes. All applications in the repository will remain intact, and so will all SSL certificates and other artifacts you uploaded to the Windows Azure Blob service. 
 
-## I do take contributions
+## Contributors
+
+(in order of first commits)
+
+* [Tomasz Janczuk](https://twitter.com/#!/tjanczuk)  
+* [Matias Woloski](https://twitter.com/#!/woloski)  
+# [Johnny G. Halife](https://twitter.com/#!/johnnyhalife)  
 
 Inspired? Bored? Or just want to make the world a better place? Get in touch and we will go from there. 
