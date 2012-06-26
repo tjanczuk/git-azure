@@ -425,6 +425,6 @@ from within a repository in which you have previously called ```git azure init``
 
 * [Tomasz Janczuk](https://twitter.com/#!/tjanczuk)  
 * [Matias Woloski](https://twitter.com/#!/woloski)  
-# [Johnny G. Halife](https://twitter.com/#!/johnnyhalife)  
+* [Johnny G. Halife](https://twitter.com/#!/johnnyhalife)  
 
 Inspired? Bored? Or just want to make the world a better place? Get in touch and we will go from there. 
