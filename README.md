@@ -393,6 +393,26 @@ Second, the git-azure runtime must be configured with the list of node.js versio
 
 During startup, git-azure runtime will download all engine versions specified in this section from http://nodejs.org/dist/v{semver_version}. Next, when initializing a node process to handle an application, it will choose a node.js engine with the maximum version that satisifies the engine version requirement of the application. 
 
+## Using private repositories or other hosted-git providers
+On the 0.5.0 we've added support for using not only Github open source repos, but also private repositories
+and any other http-based git repositories. 
+
+If you want to take advantage of this feature you need to
+
+`git clone https://{username}:{password}@github.com/my_very_private_org/my_secret_repo`
+
+Basically this will tell the engine that you're cloning a repository that is private, and
+which are the credentials you need to access it. Also the same applies to the **Submodule Applications sample**, as follows
+
+`git azure app --setup dante.com --gitUrl https://{user}:{password}@github.com/my_private_dante`
+
+Also with the same approach (but maybe without the credentials) you can support BitBucket
+or any other Hosted Git.
+
+**DISCLAIMER:** Private repositories work **because GitHub supports basic authentication 
+over HTTPS for cloning repositories**. We cannot guarantee that the same approach will work
+for your own server or any other provider.
+
 ## Resetting the git-azure runtime
 
 During normal operation, the git-azure runtime performs a reset when it receives a post receive hook notification from your Git repository. During the reset, all application processes are terminated, the repository is synchronized, the configuration is recalculated, SSL certificates are re-obtained from Windows Azure Blob storage, and the service is re-opened. This process typically takes a few seconds. 
