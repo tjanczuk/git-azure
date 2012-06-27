@@ -419,6 +419,27 @@ git azure init --force
 
 from within a repository in which you have previously called ```git azure init```. This process will take several minutes. All applications in the repository will remain intact, and so will all SSL certificates and other artifacts you uploaded to the Windows Azure Blob service. 
 
+## Using private repositories or other hosted-git providers
+On the 0.5.0 we've added support for using not only Github open source repos, but its private repositories
+and any http-based git repositories too. If you want to take advantage of this feature you need to use the remote url for your repository as follows 
+
+```
+git clone https://{username}:{password}@github.com/my_very_private_org/my_secret_repo
+```
+
+Basically this will tell the engine that you're cloning a repository that is private, and
+which are the credentials you need to access it. Also the same applies to the **Submodule Applications sample**, as follows
+
+```
+git azure app --setup dante.com --gitUrl https://{user}:{password}@github.com/my_private_dante
+```
+
+The same approach applies to BitBucket or any other Hosted GIT that supports https/http.
+
+**DISCLAIMER:** Private repositories work **because GitHub supports basic authentication 
+over HTTPS for cloning repositories**. We cannot guarantee that the same approach will work
+for your own server or any other provider.
+
 ## Contributors
 
 (in order of first commits)
