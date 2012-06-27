@@ -89,6 +89,7 @@ exports.action = function (cmd) {
 				storageAccountKey: config.storageAccountKey,
 				subscription: config.subscription,
 				serviceLocation: config.serviceLocation,
+				affinityGroup: config.affinityGroup,
 				instances: config.instances,
 				blobContainerName: config.blobContainerName,
 				remote: config.remote,
@@ -341,13 +342,21 @@ exports.action = function (cmd) {
 <CreateHostedService xmlns="http://schemas.microsoft.com/windowsazure">\
   <ServiceName>%s</ServiceName>\
   <Label>%s</Label>\
-  <Location>%s</Location>\
+  <%s>%s</%s>\
 </CreateHostedService>';
+
+		var locationNodeName = config.affinityGroup ? "AffinityGroup"
+													: "Location";
+
+		var locationNodeValue = (config.affinityGroup || config.serviceLocation);
+
 
 		var content = util.format(template,
 			config.serviceName,
 			new Buffer(config.serviceName).toString('base64'),
-			config.serviceLocation
+			locationNodeName,
+			locationNodeValue,
+			locationNodeName
 		);
 
 		common.httpsRequest(
@@ -857,13 +866,20 @@ exports.action = function (cmd) {
 <CreateStorageServiceInput xmlns="http://schemas.microsoft.com/windowsazure">\
    <ServiceName>%s</ServiceName>\
    <Label>%s</Label>\
-   <Location>%s</Location>\
+   <%s>%s</%s>\
 </CreateStorageServiceInput>';
+
+		var locationNodeName = config.affinityGroup ? "AffinityGroup"
+													: "Location";
+
+		var locationNodeValue = (config.affinityGroup || config.serviceLocation);
 
 		var content = util.format(template,
 			config.storageAccountName,
 			new Buffer(config.storageAccountName).toString('base64'),
-			config.serviceLocation
+			locationNodeName, 
+			locationNodeValue,
+			locationNodeName
 		);
 
 		common.httpsRequest(
@@ -1050,7 +1066,7 @@ exports.action = function (cmd) {
 		}
 
 		var paramOutline = {
-			'Windows Azure service settings' : [ 'serviceName', 'subscription', 'publishSettings', 'serviceLocation', 'instances' ],
+			'Windows Azure service settings' : [ 'serviceName', 'subscription', 'publishSettings', 'serviceLocation', 'affinityGroup', 'instances' ],
 			'Windows Azure storage settings' : [ 'storageAccountName', 'blobContainerName' ],
 			'Windows Azure RDP and Management settings' : [ 'username', 'password' ],
 			'Git settings' : [ 'remote_url', 'branch' ],
@@ -1064,7 +1080,11 @@ exports.action = function (cmd) {
 				if (item === 'password') {
 					console.log('    ' + item + ': <hidden>');
 				}
-				else {
+				else if(item === 'serviceLocation' && config['affinityGroup']) {
+					return;
+				} else if(item === 'affinityGroup' && !config['affinityGroup']) {
+					return;
+				} else {
 					console.log('    ' + item + ': ' + config[item]);
 				}
 			})

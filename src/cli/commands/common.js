@@ -183,7 +183,8 @@ exports.gitAzureConfigNames = [
 	'remote',
 	'branch',
 	'force',
-	'postReceive'
+	'postReceive',
+	'affinityGroup'
 ]
 
 exports.getAzureConfigFromGit = function (prefix, properties, callback) {
