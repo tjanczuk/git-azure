@@ -11,6 +11,7 @@ Git-azure is a tool and runtime environment that allows deploying multiple node.
 * real time access to logs using WebSockets from a terminal window or a web browser
 * support for multiple versions of node.js engines
 * SSH and RDP access to the Windows Azure VM for administration and diagnostics
+* support for private Git repositories via HTTP(s)  
 
 For an introduction to git-azure, you can [watch this 7 minute video](http://tomasz.janczuk.org/2012/05/develop-on-mac-host-on-github-and.html)
 
