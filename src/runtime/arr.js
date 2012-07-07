@@ -18,8 +18,8 @@ var recycleStartTime;
 var managementHtml = fs.readFileSync(path.resolve(__dirname, 'management.html'), 'utf8');
 
 if (!fs.existsSync) {
-	// polyfill node v0.7 fs.existsSync with node v0.6 path.existsSync
-	fs.existsSync = path.existsSync;
+	// polyfill node v0.7 fs.existsSync with node v0.6 fs.existsSync
+	fs.existsSync = fs.existsSync;
 }
 
 var oldLog = console.log;
