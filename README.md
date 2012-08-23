@@ -1,3 +1,4 @@
+[![build status](https://secure.travis-ci.org/tjanczuk/git-azure.png)](http://travis-ci.org/tjanczuk/git-azure)
 # git-azure
 
 Git-azure is a tool and runtime environment that allows deploying multiple node.js applications into Windows Azure Worker Role from MacOS using Git. Git-azure supports:
