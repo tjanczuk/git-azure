@@ -5,8 +5,8 @@ var path = require('path')
 	, https = require('https');
 
 if (!fs.existsSync) {
-	// polyfill node v0.7 fs.existsSync with node v0.6 path.existsSync
-	fs.existsSync = path.existsSync;
+	// polyfill node v0.7 fs.existsSync with node v0.6 fs.existsSync
+	fs.existsSync = fs.existsSync;
 }
 
 exports.isWindows = typeof process.env.OS !== 'undefined';

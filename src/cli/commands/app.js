@@ -5,7 +5,7 @@ var fs = require('fs')
 	, azure = require('azure')
 	, semver = require('semver');
 
-var existsSync = fs.existsSync || path.existsSync;
+var existsSync = fs.existsSync || fs.existsSync;
 
 exports.action = function (cmd) {
 
